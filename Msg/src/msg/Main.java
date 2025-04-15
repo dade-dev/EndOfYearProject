@@ -9,7 +9,7 @@ public class Main {
 			m = new Model();
 			new Controller(m);
 		} catch (Exception e) {
-			System.out.println("Impossible to run the application");
+			System.out.println("Impossible to run the application!");
 		}
     }
 }
