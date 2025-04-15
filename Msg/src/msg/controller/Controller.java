@@ -2,11 +2,13 @@ package msg.controller;
 
 import msg.model.Model;
 import msg.view.Window;
+
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.*;
 import java.util.Base64;
+import java.util.Enumeration;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Controller {
@@ -17,8 +19,8 @@ public class Controller {
 
     public Controller(Model m) {
         try {
-            this.m = m;
-            String ip = InetAddress.getLocalHost().getHostAddress();
+            this.m=m;
+            String ip = getLocalIp();
             v = new Window(ip);
             startListener();
             askForPeer();
@@ -85,5 +87,25 @@ public class Controller {
                 v.clearText();
             } catch (Exception ignored) {}
         };
+    }
+
+    private String getLocalIp() {
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                if (ni.isLoopback() || !ni.isUp()) continue;
+                Enumeration<InetAddress> addrs = ni.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    InetAddress addr = addrs.nextElement();
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return "IP Not Found";
     }
 }

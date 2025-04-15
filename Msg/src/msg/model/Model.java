@@ -11,32 +11,22 @@ public class Model {
     private final SecretKey key;
 
     public Model() throws Exception {
-        KeyGenerator kg = KeyGenerator.getInstance("AES");
-        kg.init(128);
-        key = kg.generateKey();
+        key = KeyGenerator.getInstance("AES").generateKey();
     }
 
-    public void addMsg(String m) {
-        msgs.add(m);
+    public void addMsg(String t) {
+        msgs.add(t);
     }
 
-    public List<String> getMsgs() {
-        return msgs;
-    }
-
-    public byte[] enc(String m) throws Exception {
+    public byte[] enc(String t) throws Exception {
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.ENCRYPT_MODE, key);
-        return c.doFinal(m.getBytes());
+        return c.doFinal(t.getBytes());
     }
 
-    public String dec(byte[] data) throws Exception {
+    public String dec(byte[] d) throws Exception {
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.DECRYPT_MODE, key);
-        return new String(c.doFinal(data));
-    }
-
-    public SecretKey getKey() {
-        return key;
+        return new String(c.doFinal(d));
     }
 }
