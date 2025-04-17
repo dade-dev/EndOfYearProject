@@ -21,6 +21,7 @@ public class Model {
     }
 
     public String decrypt(byte[] d) throws Exception {
+    	System.out.println("[MODEL] DECRYPTING");
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.DECRYPT_MODE, key);
         return new String(c.doFinal(d));
