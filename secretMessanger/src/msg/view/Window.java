@@ -2,6 +2,7 @@ package msg.view;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
@@ -77,7 +78,7 @@ public class Window extends JFrame {
                 controller.onPeerSelected(peersList.getSelectedValue());
         });
         
-        inputArea.addKeyListener(new java.awt.event.KeyAdapter() {
+        inputArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {

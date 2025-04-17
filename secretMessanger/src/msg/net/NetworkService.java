@@ -35,7 +35,6 @@ public class NetworkService {
             while (running) {
                 Socket socket = serverSocket.accept();
                 String ip = socket.getInetAddress().getHostAddress();
-                System.out.println("[NetworkService] Connessione in entrata da: " + ip);
                 addIncomingConnection(ip, socket);
                 startReaderThread(ip, socket);
             }
@@ -48,7 +47,6 @@ public class NetworkService {
         if (outgoing.containsKey(ip)) return;
         try {
             Socket socket = new Socket(ip, listenPort);
-            System.out.println("[NetworkService] Connessione in uscita verso: " + ip);
             addOutgoingConnection(ip, socket);
             startReaderThread(ip, socket);
         } catch (Exception e) {
@@ -60,7 +58,6 @@ public class NetworkService {
         BufferedWriter w = outWriters.get(ip);
         if (w == null) w = inWriters.get(ip); // fallback su incoming
         if (w != null) {
-        	System.out.println("[NetworkService] Invio messaggio a " + ip + ": " + base64Message);
             w.write(base64Message);
             w.newLine();
             w.flush();
@@ -84,7 +81,6 @@ public class NetworkService {
             try (BufferedReader r = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                 String line;
                 while ((line = r.readLine()) != null) {
-                	 System.out.println("[NetworkService] Ricezione messaggio da " + ip + ": " + line);
                 	listener.onMessageReceived(ip, line);
                 }
             } catch (Exception e) {

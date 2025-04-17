@@ -1,6 +1,7 @@
 package msg.controller;
 
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,7 +15,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
     private Model model;
     private Window view;
     private NetworkService network;
-    private String currentPeer; // ip reale
     private String myIp;
     private PeerDiscoveryService discovery;
     private int listenPort = 9000;
@@ -63,17 +63,15 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
             view.setStatus("Seleziona un peer e scrivi un messaggio!");
             return;
         }
-        currentPeer = selectedIp;
         try {
-        	System.out.println("[Controller] Invio messaggio a: " + currentPeer + " - " + message);
             byte[] encrypted = model.encrypt(message);
             String base64 = Base64.getEncoder().encodeToString(encrypted);
-            network.connectToPeer(currentPeer);
-            network.sendMessage(currentPeer, base64);
-            model.addMessage(currentPeer, "Tu: " + message);
-            refreshChat();
+            network.connectToPeer(selectedIp);
+            network.sendMessage(selectedIp, base64);
+            model.addMessage(selectedIp, "Tu: " + message);
+            refreshChat(selectedIp);
             view.clearInput();
-            view.setStatus("Messaggio inviato a " + model.getChatName(currentPeer));
+            view.setStatus("Messaggio inviato a " + model.getChatName(selectedIp));
         } catch(Exception ex) {
             view.setStatus("Errore invio: " + ex.getMessage());
         }
@@ -93,8 +91,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 
     public void onPeerSelected(String display) {
         String ip = resolveIp(display);
-        currentPeer = ip;
-        refreshChat();
+        refreshChat(ip);
         view.setStatus(ip != null ? "Peer selezionato: " + model.getChatName(ip) : "Nessun peer selezionato");
     }
 
@@ -110,25 +107,22 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         view.setStatus("Chat rinominata: " + newName);
     }
 
-    private void refreshChat() {
-        if (currentPeer != null)
-            view.setChat(model.getChat(currentPeer));
+    private void refreshChat(String senderIp) {
+        if (senderIp != null)
+            view.setChat(model.getChat(senderIp));
         else
-            view.setChat(java.util.Collections.emptyList());
+            view.setChat(Collections.emptyList());
     }
 
     @Override
     public void onMessageReceived(String senderIp, String base64Message) {
-    	System.out.println("[Controller] Messaggio ricevuto da: " + senderIp + " - " + base64Message);
         try {
             byte[] encrypted = Base64.getDecoder().decode(base64Message);
             String msg = model.decrypt(encrypted);
             String displayName = model.getChatName(senderIp);
             String display = displayName.equals(senderIp) ? senderIp : displayName + " (" + senderIp + ")";
             model.addMessage(senderIp, display + ": " + msg);
-            if (senderIp.equals(currentPeer)) {
-                refreshChat();
-            }
+            refreshChat(senderIp);
             view.setPeers(getDisplayPeers());
             view.setStatus("Messaggio ricevuto da " + display);
         } catch(Exception e) {
