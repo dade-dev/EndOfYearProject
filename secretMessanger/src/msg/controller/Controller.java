@@ -65,6 +65,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         }
         currentPeer = selectedIp;
         try {
+        	System.out.println("[Controller] Invio messaggio a: " + currentPeer + " - " + message);
             byte[] encrypted = model.encrypt(message);
             String base64 = Base64.getEncoder().encodeToString(encrypted);
             network.connectToPeer(currentPeer);
@@ -118,6 +119,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 
     @Override
     public void onMessageReceived(String senderIp, String base64Message) {
+    	System.out.println("[Controller] Messaggio ricevuto da: " + senderIp + " - " + base64Message);
         try {
             byte[] encrypted = Base64.getDecoder().decode(base64Message);
             String msg = model.decrypt(encrypted);
