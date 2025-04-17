@@ -2,7 +2,6 @@ package msg.controller;
 
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import msg.model.Model;
@@ -34,10 +33,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         // Aggiungi il tuo nome (opzionale)
         model.setChatName(myIp, "Me");
         view.setPeers(getDisplayPeers());
-    }
-
-    public void start() {
-        view.setVisible(true);
     }
 
     // Visualizza peer con eventuale nome, altrimenti solo IP
