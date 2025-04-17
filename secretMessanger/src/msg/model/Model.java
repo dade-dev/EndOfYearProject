@@ -1,9 +1,14 @@
 package msg.model;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import java.util.*;
 
 public class Model {
     private final SecretKey key;
@@ -24,6 +29,7 @@ public class Model {
     	System.out.println("[MODEL] DECRYPTING");
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.DECRYPT_MODE, key);
+        System.out.println(new String(c.doFinal(d)));
         return new String(c.doFinal(d));
     }
 
