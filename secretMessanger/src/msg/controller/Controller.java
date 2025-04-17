@@ -1,248 +1,148 @@
 package msg.controller;
 
-import msg.model.Model;
-import msg.view.Window;
-import msg.view.Window.PeerEntry;
-
-import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import java.awt.Color;
-import java.awt.event.ActionListener;
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class Controller {
-    private final Model m;
-    private final Window v;
-    private final int port = 9000;
-    // Map IP -> Socket e Writer
-    private final Map<String, Socket> sockets = new ConcurrentHashMap<>();
-    private final Map<String, BufferedWriter> writers = new ConcurrentHashMap<>();
-    // Mappa IP -> Nome (inizialmente uguale all'IP)
-    private final Map<String, String> names = new ConcurrentHashMap<>();
-    private String manualTargetIp = "";
+import msg.model.Model;
+import msg.net.NetworkService;
+import msg.net.NetworkUtils;
+import msg.net.PeerDiscoveryService;
+import msg.view.Window;
 
-    public Controller(Model m) {
+public class Controller implements NetworkService.MessageListener, PeerDiscoveryService.DiscoveryListener {
+    private Model model;
+    private Window view;
+    private NetworkService network;
+    private String currentPeer; // ip reale
+    private String myIp;
+    private PeerDiscoveryService discovery;
+    private int listenPort = 9000;
+
+    public Controller(Model model) {
+        this.model = model;
+        this.view = new Window(this);
+        this.myIp = NetworkUtils.getLocalIp();
+        this.discovery = new PeerDiscoveryService(this);
+        this.discovery.start();
+        this.network = new NetworkService(listenPort, this);
+        this.network.start();
+        this.view.setStatus("In ascolto su porta " + listenPort);
+        if (!model.getPeers().contains(myIp))
+            model.addMessage(myIp, "--- Questa è la tua chat personale ---");
+        // Aggiungi il tuo nome (opzionale)
+        model.setChatName(myIp, "Me");
+        view.setPeers(getDisplayPeers());
+    }
+
+    public void start() {
+        view.setVisible(true);
+    }
+
+    // Visualizza peer con eventuale nome, altrimenti solo IP
+    private List<String> getDisplayPeers() {
+        return model.getPeers().stream()
+                .map(ip -> {
+                    String name = model.getChatName(ip);
+                    return (name.equals(ip)) ? ip : name + " (" + ip + ")";
+                })
+                .collect(Collectors.toList());
+    }
+
+    // Dato il displayName trova l'IP reale
+    private String resolveIp(String display) {
+        for (String ip : model.getPeers()) {
+            String name = model.getChatName(ip);
+            String disp = name.equals(ip) ? ip : name + " (" + ip + ")";
+            if (disp.equals(display))
+                return ip;
+        }
+        return null;
+    }
+
+    public void onSendMessage(String message) {
+        String selectedDisplay = view.getSelectedPeer();
+        String selectedIp = resolveIp(selectedDisplay);
+        if (message == null || message.isBlank() || selectedIp == null) {
+            view.setStatus("Seleziona un peer e scrivi un messaggio!");
+            return;
+        }
+        currentPeer = selectedIp;
         try {
-            this.m = m;
-            String myIp = getLocalIp();
-            v = new Window(myIp);
-            // Inizializza il nome di self
-            names.put(myIp, myIp);
-            // Visualizza la chat del peer selezionato
-            v.ipList.addListSelectionListener(new ListSelectionListener() {
-                @Override
-                public void valueChanged(ListSelectionEvent e) {
-                    String ip = v.getSelectedIp();
-                    if(ip != null) {
-                        v.setChat(m.getChat(ip));
-                    }
-                }
-            });
-            v.sendBtn.addActionListener(sendMsg());
-            v.toggleModeBtn.addActionListener(e -> toggleMode());
-            // Listener per il set manual IP
-            v.setManualIpBtn.addActionListener(e -> {
-                String tip = v.manualIpField.getText().trim();
-                if(!tip.isEmpty()) {
-                    manualTargetIp = tip;
-                    if(!sockets.containsKey(tip)) {
-                        connect(tip);
-                    }
-                }
-            });
-            v.renameBtn.addActionListener(e -> {
-                String sel = v.getSelectedIp();
-                String newName = v.renameField.getText().trim();
-                if(sel != null && !newName.isEmpty()) {
-                    names.put(sel, newName);
-                    updatePeerList();
-                }
-            });
-            askForPeer();
-            startListener();
-            startDiscovery();
+            byte[] encrypted = model.encrypt(message);
+            String base64 = Base64.getEncoder().encodeToString(encrypted);
+            network.connectToPeer(currentPeer);
+            network.sendMessage(currentPeer, base64);
+            model.addMessage(currentPeer, "Tu: " + message);
+            refreshChat();
+            view.clearInput();
+            view.setStatus("Messaggio inviato a " + model.getChatName(currentPeer));
+        } catch(Exception ex) {
+            view.setStatus("Errore invio: " + ex.getMessage());
+        }
+    }
+
+    public void onAddPeer(String ip) {
+        if (ip == null || ip.isBlank()) {
+            view.setStatus("Inserisci un IP valido!");
+            return;
+        }
+        if (!model.getPeers().contains(ip))
+            model.addMessage(ip, "--- Conversazione iniziata ---");
+        view.setPeers(getDisplayPeers());
+        view.clearPeerInput();
+        view.setStatus("Peer aggiunto: " + ip);
+    }
+
+    public void onPeerSelected(String display) {
+        String ip = resolveIp(display);
+        currentPeer = ip;
+        refreshChat();
+        view.setStatus(ip != null ? "Peer selezionato: " + model.getChatName(ip) : "Nessun peer selezionato");
+    }
+
+    // Metodo per rinominare una chat (chiamare dalla View)
+    public void onRenameChat(String display, String newName) {
+        String ip = resolveIp(display);
+        if (ip == null) {
+            view.setStatus("Seleziona una chat valida da rinominare.");
+            return;
+        }
+        model.setChatName(ip, newName);
+        view.setPeers(getDisplayPeers());
+        view.setStatus("Chat rinominata: " + newName);
+    }
+
+    private void refreshChat() {
+        if (currentPeer != null)
+            view.setChat(model.getChat(currentPeer));
+        else
+            view.setChat(java.util.Collections.emptyList());
+    }
+
+    @Override
+    public void onMessageReceived(String senderIp, String base64Message) {
+        try {
+            byte[] encrypted = Base64.getDecoder().decode(base64Message);
+            String msg = model.decrypt(encrypted);
+            String displayName = model.getChatName(senderIp);
+            String display = displayName.equals(senderIp) ? senderIp : displayName + " (" + senderIp + ")";
+            model.addMessage(senderIp, display + ": " + msg);
+            if (senderIp.equals(currentPeer)) {
+                refreshChat();
+            }
+            view.setPeers(getDisplayPeers());
+            view.setStatus("Messaggio ricevuto da " + display);
         } catch(Exception e) {
-            throw new RuntimeException(e);
+            // errore decifratura
         }
     }
-
-    private ActionListener sendMsg() {
-        return e -> {
-            try {
-                String targetIp = !manualTargetIp.isEmpty() ? manualTargetIp : v.getSelectedIp();
-                if (targetIp == null || targetIp.isEmpty() || !sockets.containsKey(targetIp))
-                    return;
-                String txt = v.getInput();
-                if(txt.isEmpty())
-                    return;
-                BufferedWriter w = writers.get(targetIp);
-                byte[] enc = m.enc(txt);
-                String b64 = Base64.getEncoder().encodeToString(enc);
-                w.write(b64);
-                w.newLine();
-                w.flush();
-                m.addMsg(targetIp, "You: " + txt);
-                if(targetIp.equals(v.getSelectedIp()))
-                    v.setChat(m.getChat(targetIp));
-                v.clearInput();
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        };
-    }
-
-    // Avvia il thread che ascolta le connessioni in entrata
-    private void startListener() {
-        new Thread(() -> {
-            try (ServerSocket ss = new ServerSocket(port)) {
-                while (true) {
-                    Socket s = ss.accept();
-                    String ip = s.getInetAddress().getHostAddress();
-                    addConnection(s, ip);
-                    listenSocket(s, ip);
-                }
-            } catch(IOException ex) {
-                ex.printStackTrace();
-            }
-        }).start();
-    }
-
-    private void addConnection(Socket s, String ip) {
-        sockets.put(ip, s);
-        try {
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
-            writers.put(ip, bw);
-        } catch(IOException ex) {
-            ex.printStackTrace();
-        }
-        names.putIfAbsent(ip, ip);
-        SwingUtilities.invokeLater(() -> updatePeerList());
-    }
-
-    private void connect(String ip) {
-        try {
-            Socket s = new Socket();
-            s.connect(new InetSocketAddress(ip, port), 500);
-            addConnection(s, ip);
-            listenSocket(s, ip);
-        } catch(IOException ex) {
-            // Se non è possibile connettersi, si ignora
-        }
-    }
-
-    private void listenSocket(Socket s, String ip) {
-        new Thread(() -> {
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(s.getInputStream()))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    byte[] b = Base64.getDecoder().decode(line);
-                    String msg = m.dec(b);
-                    m.addMsg(ip, "Them: " + msg);
-                    // Se il peer attualmente visualizzato corrisponde, aggiorna la chat
-                    if(ip.equals(v.getSelectedIp()))
-                        v.addChat("Them: " + msg);
-                }
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }).start();
-    }
-
-    private void startDiscovery() {
-        new Thread(() -> {
-            while (true) {
-                discoverPeers();
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException ignored) {}
-            }
-        }).start();
-    }
-
-    // Esegue "arp -a" e tenta la connessione a ciascun IP trovato (che non sia il nostro)
-    private void discoverPeers() {
-        try {
-            Process p = Runtime.getRuntime().exec("arp -a");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            Pattern pattern = Pattern.compile("(\\d{1,3}(?:\\.\\d{1,3}){3})");
-            String myIp = getLocalIp();
-            while((line = reader.readLine()) != null) {
-                Matcher m = pattern.matcher(line);
-                while(m.find()) {
-                    String ip = m.group(1);
-                    if(ip.equals(myIp))
-                        continue;
-                    if(!sockets.containsKey(ip)) {
-                        connect(ip);
-                    }
-                }
-            }
-        } catch(IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private void updatePeerList() {
-        v.clearPeers();
-        for (String ip : names.keySet()) {
-            v.addPeer(new PeerEntry(ip, names.get(ip)));
-        }
-    }
-
-    private void askForPeer() {
-        String remote = JOptionPane.showInputDialog("Enter peer IP (leave blank to skip):");
-        if(remote != null && !remote.isEmpty()){
-            connect(remote);
-        }
-    }
-
-    private String getLocalIp() {
-        try {
-            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
-            while(nis.hasMoreElements()){
-                NetworkInterface ni = nis.nextElement();
-                if(ni.isLoopback() || !ni.isUp())
-                    continue;
-                Enumeration<InetAddress> addrs = ni.getInetAddresses();
-                while(addrs.hasMoreElements()){
-                    InetAddress addr = addrs.nextElement();
-                    if(!addr.isLoopbackAddress() && addr instanceof Inet4Address)
-                        return addr.getHostAddress();
-                }
-            }
-        } catch(SocketException e) {
-            e.printStackTrace();
-        }
-        return "IP Not Found";
-    }
-
-    private void toggleMode() {
-        Color bg, fg;
-        if(v.getContentPane().getBackground().equals(Color.DARK_GRAY)){
-            bg = Color.LIGHT_GRAY;
-            fg = Color.BLACK;
-            v.toggleModeBtn.setText("Dark Mode");
-        } else {
-            bg = Color.DARK_GRAY;
-            fg = Color.WHITE;
-            v.toggleModeBtn.setText("Light Mode");
-        }
-        v.getContentPane().setBackground(bg);
-        v.chatArea.setBackground(bg);
-        v.chatArea.setForeground(fg);
-        v.input.setBackground(bg);
-        v.input.setForeground(fg);
-        v.ipList.setBackground(bg);
-        v.ipList.setForeground(fg);
-        v.myIpLabel.setForeground(fg);
-        v.settingsPanel.setBackground(bg);
+    @Override
+    public void onPeerDiscovered(String ip) {
+        if (!model.getPeers().contains(ip))
+            model.addMessage(ip, "--- Peer trovato in rete ---");
+        view.setPeers(getDisplayPeers());
+        view.setStatus("Peer trovato: " + ip);
     }
 }

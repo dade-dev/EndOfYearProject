@@ -1,121 +1,135 @@
 package msg.view;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.event.KeyEvent;
+import java.util.List;
+
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.UIManager;
+
+import msg.controller.Controller;
 
 public class Window extends JFrame {
-    // Entry per la lista peer
-    public static class PeerEntry {
-        public String ip;
-        public String name;
-        public PeerEntry(String ip, String name) {
-            this.ip = ip;
-            this.name = name;
-        }
-        @Override
-        public String toString() {
-            return name + " [" + ip + "]";
-        }
-    }
-    
-    private final DefaultListModel<PeerEntry> listModel = new DefaultListModel<>();
-    public final JList<PeerEntry> ipList = new JList<>(listModel);
-    public final JTextArea chatArea = new JTextArea();
-    public final JTextField input = new JTextField();
-    public final JButton sendBtn = new JButton("Send");
-    public final JLabel myIpLabel = new JLabel();
+    private DefaultListModel<String> peersModel = new DefaultListModel<>();
+    private JList<String> peersList = new JList<>(peersModel);
+    private JTextArea chatArea = new JTextArea();
+    private JTextArea inputArea = new JTextArea(2, 30);
+    private JButton sendBtn = new JButton("Invia");
+    private JButton addPeerBtn = new JButton("Aggiungi Peer");
+    private JButton renameChatBtn = new JButton("Rinomina chat"); // NEW
+    private JTextField peerIpField = new JTextField(12);
+    private JLabel statusLabel = new JLabel("Benvenuto in SecretMessenger!");
+    private Controller controller;
 
-    // Pannello impostazioni (in alto a destra)
-    public final JPanel settingsPanel = new JPanel();
-    public final JButton toggleModeBtn = new JButton("Dark Mode");
-    public final JTextField manualIpField = new JTextField(10);
-    public final JButton setManualIpBtn = new JButton("Set IP");
-    public final JTextField renameField = new JTextField(10);
-    public final JButton renameBtn = new JButton("Rename");
-
-    public Window(String myIp) {
-        setTitle("LAN Multi Chat");
-        setSize(800, 500);
+    public Window(Controller controller) {
+    	try {
+			UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+		} catch (Exception ignored) {}
+        this.controller=controller;
+        setTitle("SecretMessenger");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+        setSize(1200, 800);
+        setLocationRelativeTo(null);
 
-        myIpLabel.setText("Your IP: " + myIp);
-        add(myIpLabel, BorderLayout.NORTH);
-
-        // Sidebar e area chat
-        JPanel mainPanel = new JPanel(new BorderLayout());
         chatArea.setEditable(false);
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        JScrollPane listScroll = new JScrollPane(ipList);
-        listScroll.setPreferredSize(new Dimension(150, 0));
-        mainPanel.add(listScroll, BorderLayout.WEST);
-        mainPanel.add(chatScroll, BorderLayout.CENTER);
-        add(mainPanel, BorderLayout.CENTER);
+        chatArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
 
-        // Pannello per input e tasto Send (sotto)
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.add(new JLabel("Peer"), BorderLayout.NORTH);
+        leftPanel.add(new JScrollPane(peersList), BorderLayout.CENTER);
+        JPanel addPanel = new JPanel();
+        addPanel.add(peerIpField); addPanel.add(addPeerBtn); addPanel.add(renameChatBtn);
+        leftPanel.add(addPanel, BorderLayout.SOUTH);
+
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
+
         JPanel inputPanel = new JPanel(new BorderLayout());
-        inputPanel.add(input, BorderLayout.CENTER);
+        inputPanel.add(inputArea, BorderLayout.CENTER);
         inputPanel.add(sendBtn, BorderLayout.EAST);
-        add(inputPanel, BorderLayout.SOUTH);
+        centerPanel.add(inputPanel, BorderLayout.SOUTH);
 
-        // Pannello impostazioni (a destra)
-        settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
-        settingsPanel.setBorder(BorderFactory.createTitledBorder("Settings"));
-        JPanel modePanel = new JPanel();
-        modePanel.add(toggleModeBtn);
-        settingsPanel.add(modePanel);
-        JPanel manualPanel = new JPanel();
-        manualPanel.add(new JLabel("Manual IP:"));
-        manualPanel.add(manualIpField);
-        manualPanel.add(setManualIpBtn);
-        settingsPanel.add(manualPanel);
-        JPanel renamePanel = new JPanel();
-        renamePanel.add(new JLabel("Rename:"));
-        renamePanel.add(renameField);
-        renamePanel.add(renameBtn);
-        settingsPanel.add(renamePanel);
-        add(settingsPanel, BorderLayout.EAST);
+        add(leftPanel, BorderLayout.WEST);
+        add(centerPanel, BorderLayout.CENTER);
+        add(statusLabel, BorderLayout.SOUTH);
 
+        sendBtn.addActionListener(e -> controller.onSendMessage(getInput()));
+        addPeerBtn.addActionListener(e -> controller.onAddPeer(peerIpField.getText().trim()));
+        renameChatBtn.addActionListener(e -> {
+            if (controller != null && getSelectedPeer() != null) {
+                String newName = JOptionPane.showInputDialog(this, "Nuovo nome per la chat:", "Rinomina chat", JOptionPane.PLAIN_MESSAGE);
+                if (newName != null && !newName.isBlank())
+                    controller.onRenameChat(getSelectedPeer(), newName.trim());
+            }
+        });
+        peersList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting())
+                controller.onPeerSelected(peersList.getSelectedValue());
+        });
+        
+        inputArea.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    if (e.isShiftDown()) {
+                        inputArea.setText(inputArea.getText() + "\n");
+                    } else {
+                        controller.onSendMessage(getInput());
+                        e.consume();
+                    }
+                }
+            }
+        });
+        
         setVisible(true);
     }
 
-    // Metodi per la chat
-    public void setChat(String text) {
-        chatArea.setText(text);
-    }
-
-    public void addChat(String text) {
-        chatArea.append(text + "\n");
-    }
-
-    public String getInput() {
-        return input.getText();
-    }
-
-    public void clearInput() {
-        input.setText("");
-    }
-
-    // Metodi per gestire la lista dei peer
-    public void clearPeers() {
-        listModel.clear();
-    }
-
-    public void addPeer(PeerEntry entry) {
-        // Se già presente, aggiorna il nome
-        for (int i = 0; i < listModel.size(); i++) {
-            PeerEntry pe = listModel.get(i);
-            if (pe.ip.equals(entry.ip)) {
-                pe.name = entry.name;
-                listModel.set(i, pe);
-                return;
-            }
+    
+    
+    public void setPeers(List<String> peers) {
+        String selected = getSelectedPeer();
+        peersModel.clear();
+        for (String p : peers) peersModel.addElement(p);
+        if (selected != null && peers.contains(selected)) {
+            peersList.setSelectedValue(selected, true);
         }
-        listModel.addElement(entry);
     }
-
-    public String getSelectedIp() {
-        PeerEntry pe = ipList.getSelectedValue();
-        return pe != null ? pe.ip : null;
+    
+    public void setChat(List<String> chatLines) {
+        chatArea.setText(String.join("\n", chatLines));
+    }
+    
+    public void appendChat(String line) {
+        chatArea.append(line + "\n");
+    }
+    
+    public void setStatus(String text) {
+        statusLabel.setText(text);
+    }
+    
+    public void clearInput() {
+        inputArea.setText("");
+    }
+    
+    public void clearPeerInput() {
+        peerIpField.setText("");
+    }
+    
+    public String getInput() {
+        return inputArea.getText();
+    }
+    
+    public String getSelectedPeer() {
+        return peersList.getSelectedValue();
     }
 }
