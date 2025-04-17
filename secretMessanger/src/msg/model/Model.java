@@ -1,5 +1,6 @@
 package msg.model;
 
+import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,18 +8,32 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Model {
+	
+	private static final String PASSWORD = "endofyearproject";
+    private static final byte[] SALT = { 3, 14, 15, 9, 26, 5, 35, 89, 79, 32, 38, 46, 26, 43, 38, 32 };
+	
     private final SecretKey key;
     private final Map<String, List<String>> chats = new HashMap<>();
     private final Map<String, String> chatNames = new HashMap<>(); // NEW
 
     public Model() throws Exception {
-        key = KeyGenerator.getInstance("AES").generateKey();
+        key = deriveKey(PASSWORD, SALT);
     }
 
+    // Deriva una chiave AES-128 forte dalla password
+    private SecretKey deriveKey(String password, byte[] salt) throws Exception {
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 128);
+        SecretKey tmp = factory.generateSecret(spec);
+        return new SecretKeySpec(tmp.getEncoded(), "AES");
+    }
+    
     public byte[] encrypt(String t) throws Exception {
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.ENCRYPT_MODE, key);
@@ -26,10 +41,8 @@ public class Model {
     }
 
     public String decrypt(byte[] d) throws Exception {
-    	System.out.println("[MODEL] DECRYPTING");
         Cipher c = Cipher.getInstance("AES");
         c.init(Cipher.DECRYPT_MODE, key);
-        System.out.println(new String(c.doFinal(d)));
         return new String(c.doFinal(d));
     }
 
