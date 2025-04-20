@@ -1,4 +1,3 @@
-# End of year project
 # Secure LAN Messenger
 
 A simple, secure, peer-to-peer LAN chat application written in Java.
