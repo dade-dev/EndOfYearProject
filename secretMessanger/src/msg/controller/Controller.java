@@ -66,6 +66,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         try {
             byte[] encrypted = model.encrypt(message);
             String base64 = Base64.getEncoder().encodeToString(encrypted);
+            System.out.println(model.getChatName(selectedIp) +" msg: "+base64);
             network.connectToPeer(selectedIp);
             network.sendMessage(selectedIp, base64);
             model.addMessage(selectedIp, "Tu: " + message);
