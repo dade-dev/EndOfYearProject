@@ -3,7 +3,6 @@ package msg.view;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.swing.*;
 
 import msg.controller.Controller;
@@ -16,6 +15,7 @@ public class Window extends JFrame {
     private JButton sendBtn = new JButton("Invia");
     private JButton addPeerBtn = new JButton("Aggiungi Peer");
     private JButton renameChatBtn = new JButton("Rinomina chat"); // NEW
+    private JToggleButton darkModeBtn = new JToggleButton("Dark Mode");
     private JTextField peerIpField = new JTextField(12);
     private JLabel statusLabel = new JLabel("Benvenuto in SecretMessenger!");
     private Controller controller;
@@ -31,14 +31,16 @@ public class Window extends JFrame {
         setLocationRelativeTo(null);
 
         chatArea.setEditable(false);
-        // Replace monospaced font with Helvetica Neue or fallback to a clean sans-serif font
         chatArea.setFont(new Font("Helvetica Neue", Font.PLAIN, 14));
         
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.add(new JLabel("Peer"), BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(peersList), BorderLayout.CENTER);
         JPanel addPanel = new JPanel();
-        addPanel.add(peerIpField); addPanel.add(addPeerBtn); addPanel.add(renameChatBtn);
+        addPanel.add(peerIpField); 
+        addPanel.add(addPeerBtn); 
+        addPanel.add(renameChatBtn);
+        addPanel.add(darkModeBtn);
         leftPanel.add(addPanel, BorderLayout.SOUTH);
 
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -81,9 +83,79 @@ public class Window extends JFrame {
             }
         });
         
+        // Add dark mode toggle functionality
+        darkModeBtn.addActionListener(e -> toggleDarkMode(darkModeBtn.isSelected()));
+        
         setVisible(true);
     }
-
+    
+    // Add dark mode toggle method
+    private void toggleDarkMode(boolean darkMode) {
+        Color bgColor = darkMode ? new Color(40, 40, 40) : UIManager.getColor("Panel.background");
+        Color textColor = darkMode ? new Color(220, 220, 220) : UIManager.getColor("Label.foreground");
+        Color buttonBgColor = darkMode ? new Color(80, 80, 80) : UIManager.getColor("Button.background");
+        Color buttonTextColor = darkMode ? new Color(220, 220, 220) : UIManager.getColor("Button.foreground");
+        
+        // Update main components
+        getContentPane().setBackground(bgColor);
+        chatArea.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+        chatArea.setForeground(textColor);
+        inputArea.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+        inputArea.setForeground(textColor);
+        peersList.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+        peersList.setForeground(textColor);
+        statusLabel.setForeground(textColor);
+        
+        // Update buttons - properly handle light mode by using system defaults
+        sendBtn.setBackground(buttonBgColor);
+        sendBtn.setForeground(buttonTextColor);
+        addPeerBtn.setBackground(buttonBgColor);
+        addPeerBtn.setForeground(buttonTextColor);
+        renameChatBtn.setBackground(buttonBgColor);
+        renameChatBtn.setForeground(buttonTextColor);
+        darkModeBtn.setBackground(buttonBgColor);
+        darkModeBtn.setForeground(buttonTextColor);
+        
+        // Fix for the blue highlight on selected buttons
+        if (darkMode) {
+            UIManager.put("Button.select", new Color(100, 100, 100));
+        } else {
+            UIManager.put("Button.select", UIManager.getColor("Button.select"));
+        }
+        
+        peerIpField.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+        peerIpField.setForeground(textColor);
+        
+        // Update all panels
+        for (Component comp : getContentPane().getComponents()) {
+            if (comp instanceof JPanel) {
+                updatePanelColors((JPanel)comp, bgColor, textColor, buttonBgColor, buttonTextColor, darkMode);
+            }
+        }
+        repaint();
+    }
+    
+    private void updatePanelColors(JPanel panel, Color bgColor, Color textColor, 
+                                  Color buttonBgColor, Color buttonTextColor, boolean darkMode) {
+        panel.setBackground(bgColor);
+        for (Component comp : panel.getComponents()) {
+            if (comp instanceof JLabel) {
+                comp.setForeground(textColor);
+            } else if (comp instanceof JPanel) {
+                updatePanelColors((JPanel)comp, bgColor, textColor, buttonBgColor, buttonTextColor, darkMode);
+            } else if (comp instanceof JScrollPane) {
+                comp.setBackground(bgColor);
+                ((JScrollPane)comp).getViewport().setBackground(bgColor);
+            } else if (comp instanceof JButton || comp instanceof JToggleButton) {
+                comp.setBackground(buttonBgColor);
+                comp.setForeground(buttonTextColor);
+            } else if (comp instanceof JTextField) {
+                comp.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+                comp.setForeground(textColor);
+            }
+        }
+    }
+    
     
     
     public void setPeers(List<String> peers) {
