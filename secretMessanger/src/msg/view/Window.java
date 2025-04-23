@@ -1,22 +1,10 @@
 package msg.view;
 
-import java.awt.BorderLayout;
-import java.awt.Font;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.List;
-
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
+import java.util.stream.Collectors;
+import javax.swing.*;
 
 import msg.controller.Controller;
 
@@ -33,9 +21,9 @@ public class Window extends JFrame {
     private Controller controller;
 
     public Window(Controller controller) {
-    	try {
-			UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-		} catch (Exception ignored) {}
+        try {
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        } catch (Exception ignored) {}
         this.controller=controller;
         setTitle("SecretMessenger");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -43,8 +31,9 @@ public class Window extends JFrame {
         setLocationRelativeTo(null);
 
         chatArea.setEditable(false);
-        chatArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
-
+        // Replace monospaced font with Helvetica Neue or fallback to a clean sans-serif font
+        chatArea.setFont(new Font("Helvetica Neue", Font.PLAIN, 14));
+        
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.add(new JLabel("Peer"), BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(peersList), BorderLayout.CENTER);
@@ -101,18 +90,31 @@ public class Window extends JFrame {
         String selected = getSelectedPeer();
         peersModel.clear();
         for (String p : peers) peersModel.addElement(p);
+        
+        // Select the previously selected peer if it still exists
         if (selected != null && peers.contains(selected)) {
             peersList.setSelectedValue(selected, true);
+        } 
+        // Otherwise select the first peer if the list is not empty
+        else if (!peers.isEmpty()) {
+            peersList.setSelectedIndex(0);
         }
+    }
+    
+    // Remove this duplicate method
+    // public void setChat(List<String> chatLines) {
+    //     chatArea.setText(String.join("\n", chatLines));
+    // }
+    
+    public void appendChat(String line) {
+        chatArea.append(line + "\n");
     }
     
     public void setChat(List<String> chatLines) {
         chatArea.setText(String.join("\n", chatLines));
     }
     
-    public void appendChat(String line) {
-        chatArea.append(line + "\n");
-    }
+    // Removing the processEmojis method
     
     public void setStatus(String text) {
         statusLabel.setText(text);
