@@ -1,17 +1,19 @@
 package msg.model;
 
+import java.awt.image.BufferedImage;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.io.ByteArrayInputStream;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.imageio.ImageIO;
 
 public class Model {
 	
@@ -20,7 +22,8 @@ public class Model {
 	
     private final SecretKey key;
     private final Map<String, List<String>> chats = new HashMap<>();
-    private final Map<String, String> chatNames = new HashMap<>(); // NEW
+    private final Map<String, String> chatNames = new HashMap<>();
+    private final Map<String, ArrayList<BufferedImage>> images = new HashMap<>();
 
     public Model() throws Exception {
         key = deriveKey(PASSWORD, SALT);
@@ -45,20 +48,40 @@ public class Model {
         c.init(Cipher.DECRYPT_MODE, key);
         return new String(c.doFinal(d));
     }
+    
+    public void addImage(String senderIp, byte[] data) {
+    	try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+            if (img != null) {
+            	ArrayList<BufferedImage> tmp = images.get(senderIp);
+                if (tmp == null) {
+                    tmp = new ArrayList<>();
+                }
+                tmp.add(img);
+                images.put(senderIp, tmp);
+            }
+        } catch (Exception ignored) {}
+    }
 
     public void addMessage(String peerIp, String msg) {
-        chats.computeIfAbsent(peerIp, k -> new ArrayList<>()).add(msg);
+    	ArrayList<String> tmp = (ArrayList<String>) chats.get(peerIp);
+        if (tmp == null) {
+            tmp = new ArrayList<>();
+        }
+        tmp.add(msg);
+        chats.put(peerIp, tmp);
     }
 
     public List<String> getChat(String peerIp) {
-        return new ArrayList<>(chats.getOrDefault(peerIp, new ArrayList<>()));
+    	ArrayList<String> tmp = new ArrayList<>();
+    	tmp = (ArrayList<String>) this.chats.get(peerIp);
+    	return tmp;
     }
 
     public Set<String> getPeers() {
         return chats.keySet();
     }
 
-    // -------- Naming methods --------
     public void setChatName(String peerIp, String name) {
         chatNames.put(peerIp, name);
     }

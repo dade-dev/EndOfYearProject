@@ -1,10 +1,8 @@
 package msg.controller;
 
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import msg.model.Model;
 import msg.net.NetworkService;
 import msg.net.NetworkUtils;
@@ -12,69 +10,83 @@ import msg.net.PeerDiscoveryService;
 import msg.view.Window;
 
 public class Controller implements NetworkService.MessageListener, PeerDiscoveryService.DiscoveryListener {
-    private Model model;
-    private Window view;
-    private NetworkService network;
-    private String myIp;
-    private PeerDiscoveryService discovery;
-    private int listenPort = 9000;
+    private final Model model;
+    private final Window view;
+    private final NetworkService network;
+    private final PeerDiscoveryService discovery;
+    private final String myIp;
+    private final int listenPort = 9000;
 
     public Controller(Model model) {
         this.model = model;
         this.view = new Window(this);
         this.myIp = NetworkUtils.getLocalIp();
+
+        // Discovery & network
         this.discovery = new PeerDiscoveryService(this);
         this.discovery.start();
         this.network = new NetworkService(listenPort, this);
         this.network.start();
-        this.view.setStatus("In ascolto su porta " + listenPort);
-        if (!model.getPeers().contains(myIp))
+
+        // Port
+        view.setStatus("In ascolto su porta " + listenPort);
+
+        // Personal Chat
+        if (!model.getPeers().contains(myIp)) {
             model.addMessage(myIp, "--- Questa è la tua chat personale ---");
-        // Aggiungi il tuo nome (opzionale)
+        }
         model.setChatName(myIp, "Me");
         view.setPeers(getDisplayPeers());
     }
 
-    // Visualizza peer con eventuale nome, altrimenti solo IP
     private List<String> getDisplayPeers() {
         return model.getPeers().stream()
-                .map(ip -> {
-                    String name = model.getChatName(ip);
-                    return (name.equals(ip)) ? ip : name + " (" + ip + ")";
-                })
-                .collect(Collectors.toList());
+            .map(ip -> {
+                String name = model.getChatName(ip);
+                return name.equals(ip) ? ip : name + " (" + ip + ")";
+            })
+            .collect(Collectors.toList());
     }
 
-    // Dato il displayName trova l'IP reale
     private String resolveIp(String display) {
-        for (String ip : model.getPeers()) {
-            String name = model.getChatName(ip);
-            String disp = name.equals(ip) ? ip : name + " (" + ip + ")";
-            if (disp.equals(display))
-                return ip;
-        }
-        return null;
+        return model.getPeers().stream()
+            .filter(ip -> {
+                String name = model.getChatName(ip);
+                String disp = name.equals(ip) ? ip : name + " (" + ip + ")";
+                return disp.equals(display);
+            })
+            .findFirst()
+            .orElse(null);
     }
 
     public void onSendMessage(String message) {
-        String selectedDisplay = view.getSelectedPeer();
-        String selectedIp = resolveIp(selectedDisplay);
-        if (message == null || message.isBlank() || selectedIp == null) {
+        String disp = view.getSelectedPeer();
+        String targetIp = resolveIp(disp);
+        if (message == null || message.isBlank() || targetIp == null) {
             view.setStatus("Seleziona un peer e scrivi un messaggio!");
             return;
         }
+
         try {
             byte[] encrypted = model.encrypt(message);
-            String base64 = Base64.getEncoder().encodeToString(encrypted);
-            network.connectToPeer(selectedIp);
-            network.sendMessage(selectedIp, base64);
-            model.addMessage(selectedIp, "Tu: " + message);
-            refreshChat(selectedIp);
+            String payload = Base64.getEncoder().encodeToString(encrypted);
+            network.connectToPeer(targetIp);
+            network.sendMessage(targetIp, payload);
+            if (message.startsWith("!IMG")) {
+                byte[] img = Base64.getDecoder().decode(message.substring(4));
+                model.addImage(myIp, img);
+                model.addMessage(targetIp, "Tu: ");
+                view.appendText(myIp + ": ");
+                view.appendImage(img);
+            } else {
+                model.addMessage(targetIp, "Tu: " + message);
+                view.appendText("Tu: " + message);
+            }
+
             view.clearInput();
-            view.setStatus("Messaggio inviato a " + model.getChatName(selectedIp));
-        } catch(Exception ex) {
-            view.setStatus("Errore invio: " + ex.getMessage());
-        }
+            view.setStatus("Messaggio inviato a " + model.getChatName(targetIp));
+
+        } catch (Exception ignored) {}
     }
 
     public void onAddPeer(String ip) {
@@ -82,20 +94,32 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
             view.setStatus("Inserisci un IP valido!");
             return;
         }
-        if (!model.getPeers().contains(ip))
+        if (!model.getPeers().contains(ip)) {
             model.addMessage(ip, "--- Conversazione iniziata ---");
-        view.setPeers(getDisplayPeers());
+            view.setPeers(getDisplayPeers());
+            view.setStatus("Peer aggiunto: " + ip);
+        }
         view.clearPeerInput();
-        view.setStatus("Peer aggiunto: " + ip);
     }
 
     public void onPeerSelected(String display) {
         String ip = resolveIp(display);
-        refreshChat(ip);
-        view.setStatus(ip != null ? "Peer selezionato: " + model.getChatName(ip) : "Nessun peer selezionato");
+        view.clearChat();
+        if (ip != null) {
+            for (String line : model.getChat(ip)) {
+                if (line.startsWith("!IMG")) {
+                    byte[] img = Base64.getDecoder().decode(line.substring(4));
+                    view.appendImage(img);
+                } else {
+                    view.appendText(line);
+                }
+            }
+            view.setStatus("Chat caricata: " + model.getChatName(ip));
+        } else {
+            view.setStatus("Nessun peer selezionato");
+        }
     }
 
-    // Metodo per rinominare una chat (chiamare dalla View)
     public void onRenameChat(String display, String newName) {
         String ip = resolveIp(display);
         if (ip == null) {
@@ -107,33 +131,36 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         view.setStatus("Chat rinominata: " + newName);
     }
 
-    private void refreshChat(String senderIp) {
-        if (senderIp != null)
-            view.setChat(model.getChat(senderIp));
-        else
-            view.setChat(Collections.emptyList());
-    }
-
     @Override
     public void onMessageReceived(String senderIp, String base64Message) {
         try {
             byte[] encrypted = Base64.getDecoder().decode(base64Message);
             String msg = model.decrypt(encrypted);
-            String displayName = model.getChatName(senderIp);
-            String display = displayName.equals(senderIp) ? senderIp : displayName + " (" + senderIp + ")";
-            model.addMessage(senderIp, display + ": " + msg);
-            refreshChat(senderIp);
-            view.setPeers(getDisplayPeers());
-            view.setStatus("Messaggio ricevuto da " + display);
-        } catch(Exception e) {
-            // errore decifratura
-        }
+            String name = model.getChatName(senderIp);
+            String disp = name.equals(senderIp) ? senderIp : name + " (" + senderIp + ")";
+
+            if (msg.startsWith("!IMG")) {
+                byte[] img = Base64.getDecoder().decode(msg.substring(4));
+                model.addImage(senderIp, img);
+                model.addMessage(senderIp, disp + ": ");
+                view.appendText(senderIp + ": ");
+                view.appendImage(img);
+                view.setStatus("Immagine ricevuta da " + disp);
+            } else {
+                model.addMessage(senderIp, disp + ": " + msg);
+                view.appendText(disp + ": " + msg);
+                view.setStatus("Messaggio ricevuto da " + disp);
+            }
+
+        } catch (Exception ignored) {}
     }
+
     @Override
     public void onPeerDiscovered(String ip) {
-        if (!model.getPeers().contains(ip))
+        if (!model.getPeers().contains(ip)) {
             model.addMessage(ip, "--- Peer trovato in rete ---");
-        view.setPeers(getDisplayPeers());
-        view.setStatus("Peer trovato: " + ip);
+            view.setPeers(getDisplayPeers());
+            view.setStatus("Peer trovato: " + ip);
+        }
     }
 }
