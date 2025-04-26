@@ -125,24 +125,27 @@ public class Window extends JFrame {
         } catch (BadLocationException ignored) {}
     }
 
-    public void appendImage(byte[] imageBytes) {
+    public void appendImage(Image img) {
         StyledDocument doc = chatPane.getStyledDocument();
         try {
-            ImageIcon icon = new ImageIcon(imageBytes);
-            if (icon.getIconWidth() > 400) {
-                Image scaled = icon.getImage().getScaledInstance(400, -1, Image.SCALE_SMOOTH);
-                icon = new ImageIcon(scaled);
+            if (img.getWidth(null) > 400) {
+                img = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH);
             }
+            ImageIcon icon = new ImageIcon(img);
             doc.insertString(doc.getLength(), "\n", null);
             chatPane.setCaretPosition(doc.getLength());
             chatPane.insertIcon(icon);
             doc.insertString(doc.getLength(), "\n\n", null);
             chatPane.setCaretPosition(doc.getLength());
             
-            //We need to force the repainting of the page due to some bug of Java (I think) - ask Davide for more information
+            // Force the repainting for the "workaround" but of Java
             chatPane.revalidate();
             chatPane.repaint();
         } catch (BadLocationException ignored) {}
+    }
+
+    public void selectPeer(String display) {
+        peersList.setSelectedValue(display, true);
     }
 
     public void setPeers(List<String> peers) {

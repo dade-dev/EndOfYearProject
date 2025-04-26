@@ -1,5 +1,6 @@
 package msg.model;
 
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
@@ -15,15 +16,16 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 
+@SuppressWarnings("rawtypes")
 public class Model {
 	
 	private static final String PASSWORD = "endofyearproject";
     private static final byte[] SALT = { 3, 14, 15, 9, 26, 5, 35, 89, 79, 32, 38, 46, 26, 43, 38, 32 };
 	
     private final SecretKey key;
-    private final Map<String, List<String>> chats = new HashMap<>();
+    private final Map<String, List<Message>> chats = new HashMap<>();
     private final Map<String, String> chatNames = new HashMap<>();
-    private final Map<String, ArrayList<BufferedImage>> images = new HashMap<>();
+    private final Map<String, ArrayList<Image>> images = new HashMap<>();
 
     public Model() throws Exception {
         key = deriveKey(PASSWORD, SALT);
@@ -50,31 +52,42 @@ public class Model {
     }
     
     public void addImage(String senderIp, byte[] data) {
-    	try {
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        try {
+            Image img = ImageIO.read(new ByteArrayInputStream(data));
             if (img != null) {
-            	ArrayList<BufferedImage> tmp = images.get(senderIp);
+                ArrayList<Message> tmp = (ArrayList<Message>) chats.get(senderIp);
                 if (tmp == null) {
                     tmp = new ArrayList<>();
+                    chats.put(senderIp, tmp);
                 }
-                tmp.add(img);
-                images.put(senderIp, tmp);
+                tmp.add(new Message<Image>(senderIp, img));
+
+                ArrayList<Image> imgList = images.get(senderIp);
+                if (imgList == null) {
+                    imgList = new ArrayList<>();
+                    images.put(senderIp, imgList);
+                }
+                imgList.add(img);
             }
-        } catch (Exception ignored) {}
+        } catch(Exception ignored) {}
+    }
+    
+    public ArrayList<Image> getImages(String peerIp) {
+        return images.get(peerIp);
     }
 
     public void addMessage(String peerIp, String msg) {
-    	ArrayList<String> tmp = (ArrayList<String>) chats.get(peerIp);
+    	ArrayList<Message> tmp = (ArrayList<Message>) chats.get(peerIp);
         if (tmp == null) {
             tmp = new ArrayList<>();
         }
-        tmp.add(msg);
+        tmp.add(new Message(msg, null));
         chats.put(peerIp, tmp);
     }
 
-    public List<String> getChat(String peerIp) {
-    	ArrayList<String> tmp = new ArrayList<>();
-    	tmp = (ArrayList<String>) this.chats.get(peerIp);
+	public List<Message> getChat(String peerIp) {
+    	ArrayList<Message> tmp = new ArrayList<>();
+    	tmp = (ArrayList<Message>) this.chats.get(peerIp);
     	return tmp;
     }
 
