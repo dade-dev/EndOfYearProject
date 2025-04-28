@@ -67,7 +67,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         return display;
     }
 
-
     public void onSendMessage(String message) {
         new Thread(() -> {
             String disp = view.getSelectedPeer();
@@ -84,9 +83,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 network.sendMessage(targetIp, payload);
                 if (message.startsWith("!IMG")) {
                     byte[] imgBytes = Base64.getDecoder().decode(message.substring(4));
-                    model.addImage(myIp, imgBytes);
-                    model.addMessage(targetIp, "Tu: ");
-                    //we use this to force the printing at the same time
+                    model.addImage(targetIp, imgBytes, "Tu: ");
                     SwingUtilities.invokeLater(() -> {
                         view.appendText("Tu: ");
                         ImageIcon icon = new ImageIcon(imgBytes);
@@ -94,8 +91,10 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                         view.appendImage(img);
                     });
                 } else {
-                    model.addMessage(targetIp, "Tu: " + message);
-                    view.appendText("Tu: " + message);
+                    SwingUtilities.invokeLater(()->{
+                        model.addMessage(targetIp, "Tu: " + message);
+                        view.appendText("Tu: " + message);
+                    });
                 }
 
                 view.clearInput();
@@ -104,7 +103,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
             } catch (Exception ignored) {}
         }).start();
     }
-
 
     public void onAddPeer(String ip) {
         new Thread(() -> {
@@ -122,25 +120,68 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
     }
 
     public void onPeerSelected(String display) {
-       new Thread(() -> {
-    	   String ip = resolveIp(display);
-           view.clearChat();
-           
-           if(ip != null) {
-           	if(model.getChat(ip) == null)
-           		model.addMessage(ip, "--- Nuova chat creata ---");
-           	else
-           		for(Message el : (ArrayList<Message>) model.getChat(ip)) {
-           			view.appendText(el.getMessage());
-           			if(el.haveContent() && el.getContent() instanceof Image)
-           				view.appendImage((Image)el.getContent());
-           				
-           		}
-           	view.setStatus("Chat caricata: " + model.getChatName(ip));
-           }else {
-           	view.setStatus("Nessun peer selezionato");
-           }  
-       }).start();
+        new Thread(() -> {
+            String ip = resolveIp(display);
+            view.clearChat();
+            
+            if(ip != null) {
+                if(model.getChat(ip) == null) {
+                    model.addMessage(ip, "--- Nuova chat creata ---");
+                } else {
+                    // First identify if this is a chat that was renamed
+                    String chatName = model.getChatName(ip);
+                    boolean renamed = !chatName.equals(ip);
+                    
+                    for(Message el : (ArrayList<Message>) model.getChat(ip)) {
+                        String msgText = el.getMessage();
+                        if (msgText.startsWith("---")) {
+                            view.appendText(msgText);
+                        }
+                        else if (msgText.contains(": ")) {
+                            String prefix;
+                            String content;
+                            if (msgText.startsWith("Tu: ")) {
+                                prefix = "Tu: ";
+                                content = msgText.substring(4);
+                            }
+                            else {
+                                prefix = chatName + ": ";
+                                int colonPos = msgText.indexOf(": ");
+                                content = msgText.substring(colonPos + 2);
+                            }
+                            
+                            // Only display text if there's no image content
+                            if (!el.haveContent()) {
+                                view.appendText(prefix + content);
+                            }
+                        }
+                        else {
+                            if (renamed && msgText.trim().equals(ip)) {
+                                view.appendText(chatName);
+                            } else if (!el.haveContent()) {
+                                view.appendText(msgText);
+                            }
+                        }
+                        
+                        // If there's an image, display the proper text from Message and the image
+                        if(el.haveContent() && el.getContent() instanceof Image) {
+                            // For images, use the stored message text directly
+                            if (renamed && msgText.contains(ip)) {
+                                // Replace IP with current chat name in the message
+                                String updatedMsg = msgText.replace(ip, chatName);
+                                view.appendText(updatedMsg);
+                            } else {
+                                view.appendText(msgText);
+                            }
+                            view.appendImage((Image)el.getContent());
+                        }
+                    }
+                }
+                view.setStatus("Chat caricata: " + model.getChatName(ip));
+            } else {
+                view.setStatus("Nessun peer selezionato");
+            }  
+        }).start();
     }
 
     public void onRenameChat(String display, String newName) {
@@ -155,9 +196,10 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         view.setPeers(getDisplayPeers());
         
         String newDisplay = model.getChatName(ip).equals(ip) ? ip : model.getChatName(ip) + " (" + ip + ")";
-        
-        view.selectPeer(newDisplay);
-        view.setStatus("Chat rinominata: " + newName);
+        SwingUtilities.invokeLater(() -> {
+	        view.selectPeer(newDisplay);
+	        view.setStatus("Chat rinominata: " + newName);
+        });
     }
 
     @Override
@@ -171,15 +213,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 
                 if (msg.startsWith("!IMG")) {
                     byte[] imgBytes = Base64.getDecoder().decode(msg.substring(4));
-                    model.addImage(senderIp, imgBytes);
-                    model.addMessage(senderIp, disp + ": ");
-                    //we use this to force the printing at the same time
+                    model.addImage(senderIp, imgBytes, disp + ": ");
                     SwingUtilities.invokeLater(() -> {
                         view.appendText(disp + ": ");
                         ImageIcon icon = new ImageIcon(imgBytes);
                         Image img = icon.getImage();
                         view.appendImage(img);
-
                         view.setStatus("Immagine ricevuta da " + disp);
                     });
                 } else {
@@ -187,11 +226,9 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                     view.appendText(disp + ": " + msg);
                     view.setStatus("Messaggio ricevuto da " + disp);
                 }
-
             } catch (Exception ignored) {}
         }).start();
     }
-
 
     @Override
     public void onPeerDiscovered(String ip) {

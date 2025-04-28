@@ -1,14 +1,13 @@
 package msg.model;
 
 import java.awt.Image;
-import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.io.ByteArrayInputStream;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -51,7 +50,7 @@ public class Model {
         return new String(c.doFinal(d));
     }
     
-    public void addImage(String senderIp, byte[] data) {
+    public void addImage(String senderIp, byte[] data, String messageText) {
         try {
             Image img = ImageIO.read(new ByteArrayInputStream(data));
             if (img != null) {
@@ -60,7 +59,8 @@ public class Model {
                     tmp = new ArrayList<>();
                     chats.put(senderIp, tmp);
                 }
-                tmp.add(new Message<Image>(senderIp, img));
+                // Store the custom message text with the image
+                tmp.add(new Message<Image>(messageText, img));
 
                 ArrayList<Image> imgList = images.get(senderIp);
                 if (imgList == null) {
@@ -76,7 +76,7 @@ public class Model {
         return images.get(peerIp);
     }
 
-    @SuppressWarnings("unchecked") // for adding a new Message without making a new Instance of "Message(msg, null);"
+    @SuppressWarnings("unchecked") // <-- for adding a new Message without making a new Instance of "Message(msg, null);"
 	public void addMessage(String peerIp, String msg) {
     	ArrayList<Message> tmp = (ArrayList<Message>) chats.get(peerIp);
         if (tmp == null) {

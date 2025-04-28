@@ -128,9 +128,9 @@ public class Window extends JFrame {
     public void appendImage(Image img) {
         StyledDocument doc = chatPane.getStyledDocument();
         try {
-            if (img.getWidth(null) > 400)
+            if (img.getWidth(null) > 400) {
                 img = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH);
-            
+            }
             doc.insertString(doc.getLength(), "\n", null);
             
             chatPane.setCaretPosition(doc.getLength());
@@ -140,7 +140,7 @@ public class Window extends JFrame {
             
             chatPane.setCaretPosition(doc.getLength());
             
-            // Force the repainting for the "workaround" bug of Java
+            // Force the repainting for some bug of Java
             chatPane.revalidate();
             chatPane.repaint();
         } catch (BadLocationException ignored) {}
