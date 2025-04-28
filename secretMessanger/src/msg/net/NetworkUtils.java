@@ -10,7 +10,8 @@ public class NetworkUtils {
             Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces();
             while (ifaces.hasMoreElements()) {
                 NetworkInterface iface = ifaces.nextElement();
-                if (iface.isLoopback() || !iface.isUp()) continue;
+                String name= iface.getDisplayName().toLowerCase();
+                if (iface.isLoopback() || !iface.isUp() || name.contains("ham") || name.contains("ztt")) continue;
                 for (InterfaceAddress addr : iface.getInterfaceAddresses()) {
                     String ip = addr.getAddress().getHostAddress();
                     if (!ip.startsWith("127.") && !ip.contains(":")) return ip;

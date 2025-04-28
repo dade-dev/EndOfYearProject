@@ -7,8 +7,7 @@ public class Message<T>{
 	
 	public Message(String msg, T cnt) {
 		message = msg;
-		if(cnt == null)
-			content = null;
+		content = cnt;
 	}
 
 	public boolean haveContent() {

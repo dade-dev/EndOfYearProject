@@ -76,7 +76,8 @@ public class Model {
         return images.get(peerIp);
     }
 
-    public void addMessage(String peerIp, String msg) {
+    @SuppressWarnings("unchecked") // for adding a new Message without making a new Instance of "Message(msg, null);"
+	public void addMessage(String peerIp, String msg) {
     	ArrayList<Message> tmp = (ArrayList<Message>) chats.get(peerIp);
         if (tmp == null) {
             tmp = new ArrayList<>();

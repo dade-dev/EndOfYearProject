@@ -128,17 +128,19 @@ public class Window extends JFrame {
     public void appendImage(Image img) {
         StyledDocument doc = chatPane.getStyledDocument();
         try {
-            if (img.getWidth(null) > 400) {
+            if (img.getWidth(null) > 400)
                 img = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH);
-            }
-            ImageIcon icon = new ImageIcon(img);
+            
             doc.insertString(doc.getLength(), "\n", null);
+            
             chatPane.setCaretPosition(doc.getLength());
-            chatPane.insertIcon(icon);
-            doc.insertString(doc.getLength(), "\n\n", null);
+            chatPane.insertIcon(new ImageIcon(img));
+            
+            doc.insertString(doc.getLength(), "\n", null);
+            
             chatPane.setCaretPosition(doc.getLength());
             
-            // Force the repainting for the "workaround" but of Java
+            // Force the repainting for the "workaround" bug of Java
             chatPane.revalidate();
             chatPane.repaint();
         } catch (BadLocationException ignored) {}
@@ -187,9 +189,9 @@ public class Window extends JFrame {
         }
         UIManager.put("Button.select", darkMode ? new Color(100,100,100) : UIManager.getColor("Button.select"));
 
-        for (Component comp : getContentPane().getComponents()) {
-            if (comp instanceof JPanel) updatePanelColors((JPanel)comp, bg, fg, btnBg, btnFg, darkMode);
-        }
+        for (Component comp : getContentPane().getComponents())
+            if (comp instanceof JPanel) 
+            	updatePanelColors((JPanel)comp, bg, fg, btnBg, btnFg, darkMode);
         repaint();
     }
 
@@ -207,9 +209,11 @@ public class Window extends JFrame {
 
     private void updatePanelColors(JPanel panel, Color bg, Color fg, Color btnBg, Color btnFg, boolean darkMode) {
         panel.setBackground(bg);
-        for (Component comp : panel.getComponents()) {
-            if (comp instanceof JLabel) comp.setForeground(fg);
-            else if (comp instanceof JPanel) updatePanelColors((JPanel)comp, bg, fg, btnBg, btnFg, darkMode);
+        for (Component comp : panel.getComponents())
+            if (comp instanceof JLabel) 
+            	comp.setForeground(fg);
+            else if (comp instanceof JPanel) 
+            	updatePanelColors((JPanel)comp, bg, fg, btnBg, btnFg, darkMode);
             else if (comp instanceof JScrollPane) {
                 comp.setBackground(bg);
                 ((JScrollPane)comp).getViewport().setBackground(bg);
@@ -220,6 +224,5 @@ public class Window extends JFrame {
                 comp.setBackground(darkMode ? new Color(60,60,60) : Color.WHITE);
                 comp.setForeground(fg);
             }
-        }
     }
 }

@@ -143,18 +143,20 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
        }).start();
     }
 
-
     public void onRenameChat(String display, String newName) {
         String ip = resolveIp(display);
         if (ip == null) {
             view.setStatus("Seleziona una chat valida da rinominare.");
             return;
         }
+        
         model.setChatName(ip, newName);
+        
         view.setPeers(getDisplayPeers());
+        
         String newDisplay = model.getChatName(ip).equals(ip) ? ip : model.getChatName(ip) + " (" + ip + ")";
+        
         view.selectPeer(newDisplay);
-        onPeerSelected(newDisplay);
         view.setStatus("Chat rinominata: " + newName);
     }
 
