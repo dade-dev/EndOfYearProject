@@ -18,7 +18,7 @@ Each client runs on a local machine. Connections are established over the LAN us
 
 ### Requirements
 
-- Java 8 or higher
+- Java 17 or higher
 
 ### Compilation
 
