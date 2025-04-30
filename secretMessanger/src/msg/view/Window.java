@@ -164,7 +164,7 @@ public class Window extends JFrame {
 		});
 
 		// Apply initial theme before showing the window
-		toggleDarkMode(); // Apply initial theme (light mode)
+		toggleDarkMode(); // Apply initial theme (dark mode)
 		setVisible(true);
 	}
 
