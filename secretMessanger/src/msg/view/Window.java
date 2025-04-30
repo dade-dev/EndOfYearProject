@@ -12,6 +12,9 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.StyledDocument;
 import msg.controller.Controller;
+import java.awt.GridBagConstraints; // Import GridBagConstraints
+import java.awt.GridBagLayout; // Import GridBagLayout
+import java.awt.Insets; // Import Insets
 
 public class Window extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -24,9 +27,11 @@ public class Window extends JFrame {
 	private JButton sendImage = new JButton("Immagini");
 	private JButton addPeerBtn = new JButton("Aggiungi Peer");
 	private JButton renameChatBtn = new JButton("Rinomina chat");
-	private JToggleButton darkModeBtn = new JToggleButton("Dark Mode");
+	private JButton removePeerBtn = new JButton("Rimuovi Peer");
+	private JButton darkModeBtn = new JButton("Dark Mode"); // Changed from JToggleButton
 	private JLabel statusLabel = new JLabel("");
 	private Controller controller;
+	private boolean isDarkMode = true; // Added state variable //Starts in darkmode ahh my eyes
 
 	public Window(Controller c) {
 		this.controller = c;
@@ -38,7 +43,7 @@ public class Window extends JFrame {
 		DefaultCaret caret = (DefaultCaret) chatPane.getCaret();
 		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 
-		chatPane.setEditable(false);
+		chatPane.setEditable(false); // Set non-editable
 		chatPane.setFont(new Font("Helvetica Neue", Font.PLAIN, 14));
 
 		JPanel leftPanel = new JPanel(new BorderLayout());
@@ -46,12 +51,36 @@ public class Window extends JFrame {
 		leftPanel.add(new JScrollPane(peersList), BorderLayout.CENTER);
 		peersList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-		JPanel leftBottom = new JPanel();
-		leftBottom.add(peerIpField);
-		leftBottom.add(addPeerBtn);
-		leftBottom.add(renameChatBtn);
-		leftBottom.add(darkModeBtn);
+		// --- Start of leftBottom panel changes ---
+		JPanel leftBottom = new JPanel(new GridBagLayout()); // Use GridBagLayout
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.fill = GridBagConstraints.HORIZONTAL; // Make components fill horizontally
+		gbc.insets = new Insets(2, 5, 2, 5); // Add some padding
+		gbc.gridx = 0; // All components in the same column
+		gbc.weightx = 1.0; // Allow horizontal expansion
+
+		// Add peerIpField
+		gbc.gridy = 0;
+		leftBottom.add(peerIpField, gbc);
+
+		// Add addPeerBtn
+		gbc.gridy = 1;
+		leftBottom.add(addPeerBtn, gbc);
+
+		// Add renameChatBtn
+		gbc.gridy = 2;
+		leftBottom.add(renameChatBtn, gbc);
+
+		// Add removePeerBtn
+		gbc.gridy = 3;
+		leftBottom.add(removePeerBtn, gbc);
+
+		// Add darkModeBtn
+		gbc.gridy = 4;
+		leftBottom.add(darkModeBtn, gbc);
+
 		leftPanel.add(leftBottom, BorderLayout.SOUTH);
+		// --- End of leftBottom panel changes ---
 
 		JPanel centerPanel = new JPanel(new BorderLayout());
 		centerPanel.add(new JScrollPane(chatPane), BorderLayout.CENTER);
@@ -97,10 +126,26 @@ public class Window extends JFrame {
 			}
 		});
 
+		removePeerBtn.addActionListener(e -> {
+			String sel = peersList.getSelectedValue();
+			if (sel != null) controller.onRemovePeer(sel);
+		});
+
 		peersList.addListSelectionListener(e -> {
 			if (!e.getValueIsAdjusting())
 				controller.onPeerSelected(peersList.getSelectedValue());
 		});
+
+		peerIpField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					controller.onAddPeer(peerIpField.getText().trim());
+					e.consume();
+				}
+			}
+		});
+
 
 		inputArea.addKeyListener(new KeyAdapter() {
 			@Override
@@ -113,8 +158,13 @@ public class Window extends JFrame {
 			}
 		});
 
-		darkModeBtn.addActionListener(e -> toggleDarkMode(darkModeBtn.isSelected()));
+		darkModeBtn.addActionListener(e -> { // Changed listener logic
+			isDarkMode = !isDarkMode;
+			toggleDarkMode();
+		});
 
+		// Apply initial theme before showing the window
+		toggleDarkMode(); // Apply initial theme (light mode)
 		setVisible(true);
 	}
 
@@ -171,25 +221,31 @@ public class Window extends JFrame {
 		inputArea.setText("");
 	}
 
-	private void toggleDarkMode(boolean darkMode) {
-		Color bg = darkMode ? new Color(40, 40, 40) : UIManager.getColor("Panel.background");
-		Color fg = darkMode ? new Color(220, 220, 220) : UIManager.getColor("Label.foreground");
-		Color btnBg = darkMode ? new Color(80, 80, 80) : UIManager.getColor("Button.background");
-		Color btnFg = darkMode ? Color.WHITE : Color.BLACK;
-		Color selectBg = darkMode ? new Color(100, 100, 100) : UIManager.getColor("Button.select");
+	private void toggleDarkMode() { // Corrected implementation
+		Color bg = isDarkMode ? new Color(40, 40, 40) : UIManager.getColor("Panel.background");
+		Color fg = isDarkMode ? new Color(220, 220, 220) : UIManager.getColor("Label.foreground");
+		Color btnBg = isDarkMode ? new Color(80, 80, 80) : UIManager.getColor("Button.background");
+		Color btnFg = isDarkMode ? Color.WHITE : Color.BLACK;
+		Color selectBg = isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"); // Use List selection background
+		Color listBg = isDarkMode ? new Color(60, 60, 60) : Color.WHITE;
+
+		darkModeBtn.setText(isDarkMode ? "Light Mode" : "Dark Mode"); // Update button text
 
 		getContentPane().setBackground(bg);
-		
-		chatPane.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+
+		chatPane.setBackground(listBg);
 		chatPane.setForeground(fg);
-		inputArea.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+		inputArea.setBackground(listBg);
 		inputArea.setForeground(fg);
-		peersList.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+		peersList.setBackground(listBg);
 		peersList.setForeground(fg);
+		peersList.setSelectionBackground(selectBg);
+		peersList.setSelectionForeground(fg); // Ensure selected text is visible
 		statusLabel.setForeground(fg);
 
-		AbstractButton[] buttons = { sendBtn, sendImage, addPeerBtn, renameChatBtn, darkModeBtn };
-		for (AbstractButton btn : buttons) {
+		// Apply styles to all relevant buttons
+		JButton[] buttonsToStyle = { sendBtn, sendImage, addPeerBtn, renameChatBtn, darkModeBtn };
+		for (JButton btn : buttonsToStyle) { // Iterate over JButtons
 			btn.setBackground(btnBg);
 			btn.setForeground(btnFg);
 			btn.setOpaque(true);
@@ -197,8 +253,8 @@ public class Window extends JFrame {
 			btn.setFocusPainted(false);
 		}
 
-		UIManager.put("Button.select", selectBg);
-		updatePanelColors((JPanel) getContentPane(), bg, fg, btnBg, btnFg, darkMode);
+		// Update colors recursively for panels and components
+		updateComponentColors((JPanel) getContentPane(), bg, fg, btnBg, btnFg, listBg, isDarkMode);
 		repaint();
 	}
 
@@ -214,22 +270,62 @@ public class Window extends JFrame {
 		peerIpField.setText("");
 	}
 
-	private void updatePanelColors(JPanel panel, Color bg, Color fg, Color btnBg, Color btnFg, boolean darkMode) {
-		panel.setBackground(bg);
-		for (Component comp : panel.getComponents())
-			if (comp instanceof JLabel)
-				comp.setForeground(fg);
-			else if (comp instanceof JPanel)
-				updatePanelColors((JPanel) comp, bg, fg, btnBg, btnFg, darkMode);
-			else if (comp instanceof JScrollPane) {
-				comp.setBackground(bg);
-				((JScrollPane) comp).getViewport().setBackground(bg);
-			} else if (comp instanceof JButton || comp instanceof JToggleButton) {
-				comp.setBackground(btnBg);
-				comp.setForeground(btnFg);
+	// Renamed and corrected recursive update method
+	private void updateComponentColors(Container container, Color bg, Color fg, Color btnBg, Color btnFg, Color listBg, boolean darkMode) {
+		container.setBackground(bg);
+		container.setForeground(fg);
+
+		for (Component comp : container.getComponents()) {
+			comp.setBackground(bg);
+			comp.setForeground(fg);
+
+			if (comp instanceof JButton) {
+				JButton btn = (JButton) comp;
+				// Avoid restyling buttons already handled if needed, though reapplying is usually fine
+				// Check if it's one of the main buttons if specific styling is needed
+				boolean isMainButton = false;
+				JButton[] mainButtons = { sendBtn, sendImage, addPeerBtn, renameChatBtn, darkModeBtn };
+				for(JButton mainBtn : mainButtons) {
+					if (btn == mainBtn) {
+						isMainButton = true;
+						break;
+					}
+				}
+				if (isMainButton) {
+					btn.setBackground(btnBg);
+					btn.setForeground(btnFg);
+					btn.setOpaque(true);
+					btn.setBorderPainted(false);
+					btn.setFocusPainted(false);
+				} else {
+					// Style other potential JButtons if necessary
+					btn.setBackground(btnBg); // Apply default button style
+					btn.setForeground(btnFg);
+				}
 			} else if (comp instanceof JTextField) {
-				comp.setBackground(darkMode ? new Color(60, 60, 60) : Color.WHITE);
+				comp.setBackground(listBg); // Use listBg for text fields
 				comp.setForeground(fg);
-			}
+			} else if (comp instanceof JTextPane) {
+				comp.setBackground(listBg);
+				comp.setForeground(fg);
+			} else if (comp instanceof JList) {
+				JList<?> list = (JList<?>) comp;
+				list.setBackground(listBg);
+				list.setForeground(fg);
+				list.setSelectionBackground(isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"));
+				list.setSelectionForeground(fg);
+			} else if (comp instanceof JScrollPane) {
+				JScrollPane scrollPane = (JScrollPane) comp;
+				scrollPane.getViewport().setBackground(listBg); // Background for viewport content
+				scrollPane.setBackground(bg); // Scroll pane background itself
+				// Style scrollbars if needed (more complex)
+			} else if (comp instanceof JLabel) {
+				comp.setForeground(fg); // Only set foreground for labels
+			} else if (comp instanceof JPanel) { // Recurse into JPanels
+				updateComponentColors((JPanel) comp, bg, fg, btnBg, btnFg, listBg, darkMode);
+			} else if (comp instanceof Container) { // Recurse for other container types
+                updateComponentColors((Container) comp, bg, fg, btnBg, btnFg, listBg, darkMode);
+            }
+		}
 	}
 }

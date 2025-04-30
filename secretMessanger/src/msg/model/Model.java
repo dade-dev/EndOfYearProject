@@ -4,10 +4,11 @@ import java.awt.Image;
 import java.io.ByteArrayInputStream;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -15,19 +16,18 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 
+import msg.config.Config;
+
 @SuppressWarnings("rawtypes")
 public class Model {
 	
-	private static final String PASSWORD = "endofyearproject";
-    private static final byte[] SALT = { 3, 14, 15, 9, 26, 5, 35, 89, 79, 32, 38, 46, 26, 43, 38, 32 };
-	
     private final SecretKey key;
-    private final Map<String, List<Message>> chats = new HashMap<>();
-    private final Map<String, String> chatNames = new HashMap<>();
-    private final Map<String, ArrayList<Image>> images = new HashMap<>();
+    private final Map<String, List<Message>> chats = new ConcurrentHashMap<>();
+    private final Map<String, String> chatNames = new ConcurrentHashMap<>();
+    private final Map<String, ArrayList<Image>> images = new ConcurrentHashMap<>();
 
     public Model() throws Exception {
-        key = deriveKey(PASSWORD, SALT);
+        key = deriveKey(Config.getPassword(), Config.getSalt());
     }
 
     // Deriva una chiave AES-128 forte dalla password
@@ -60,7 +60,7 @@ public class Model {
                     chats.put(senderIp, tmp);
                 }
                 // Store the custom message text with the image
-                tmp.add(new Message<Image>(messageText, img));
+                tmp.add(new Message<>(messageText, img));
 
                 ArrayList<Image> imgList = images.get(senderIp);
                 if (imgList == null) {
@@ -87,9 +87,7 @@ public class Model {
     }
 
 	public List<Message> getChat(String peerIp) {
-    	ArrayList<Message> tmp = new ArrayList<>();
-    	tmp = (ArrayList<Message>) this.chats.get(peerIp);
-    	return tmp;
+    	return chats.get(peerIp);
     }
 
     public Set<String> getPeers() {
@@ -105,6 +103,25 @@ public class Model {
     }
 
     public Map<String, String> getAllChatNames() {
-        return new HashMap<>(chatNames);
+        return new ConcurrentHashMap<>(chatNames);
+    }
+  
+    public boolean removePeer(String peerIp) {
+        // Don't allow removing self chat
+        if (peerIp == null) {
+            return false;
+        }
+        
+        // Remove chat history
+        List<Message> removedChat = chats.remove(peerIp);
+        
+        // Remove chat name
+        String removedName = chatNames.remove(peerIp);
+        
+        // Remove images
+        ArrayList<Image> removedImages = images.remove(peerIp);
+        
+        // Return true if anything was removed
+        return (removedChat != null || removedName != null || removedImages != null);
     }
 }

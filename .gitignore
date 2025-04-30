@@ -3,3 +3,4 @@ bin/
 *.class
 *.jar
 .DS_Store
+logs/

@@ -3,6 +3,8 @@ package msg.net;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
+import msg.util.LoggerUtil;
+import msg.util.NetworkUtils;
 
 public class PeerDiscoveryService {
     public interface DiscoveryListener {
@@ -34,7 +36,7 @@ public class PeerDiscoveryService {
     public Set<String> getKnownPeers() {
         return new HashSet<>(knownPeers);
     }
-/*
+
     private void listen() {
         try (DatagramSocket socket = new DatagramSocket(BROADCAST_PORT, InetAddress.getByName("0.0.0.0"))) {
             socket.setBroadcast(true);
@@ -45,28 +47,14 @@ public class PeerDiscoveryService {
                 String msg = new String(packet.getData(), 0, packet.getLength());
                 String senderIp = packet.getAddress().getHostAddress();
                 if (BROADCAST_MSG.equals(msg) && !isSelf(senderIp)) {
-                    if (knownPeers.add(senderIp) && listener != null)
+                    if (knownPeers.add(senderIp) && listener != null) {
+                        LoggerUtil.logInfo("PeerDiscoveryService", "listen", "Discovered new peer: " + senderIp);
                         listener.onPeerDiscovered(senderIp);
-                }
-            }
-        } catch (Exception ignored) {}
-    }*/
-    private void listen() {
-        try (DatagramSocket socket = new DatagramSocket(BROADCAST_PORT, InetAddress.getByName("0.0.0.0"))) {
-            socket.setBroadcast(true);
-            byte[] buf = new byte[128];
-            while (running) {
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                String msg = new String(packet.getData(), 0, packet.getLength());
-                String senderIp = packet.getAddress().getHostAddress();
-                if (BROADCAST_MSG.equals(msg) && !isSelf(senderIp)) {
-                    if (knownPeers.add(senderIp) && listener != null)
-                        listener.onPeerDiscovered(senderIp);
+                    }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.logError("PeerDiscoveryService", "listen", "Error in discovery listener", e);
         }
     }
     
@@ -77,30 +65,26 @@ public class PeerDiscoveryService {
             DatagramPacket packet = new DatagramPacket(data, data.length,
                     InetAddress.getByName("255.255.255.255"), BROADCAST_PORT);
 
+            LoggerUtil.logInfo("PeerDiscoveryService", "broadcast", "Starting peer discovery broadcasts");
             while (running) {
-                socket.send(packet);
-                Thread.sleep(2000); // ogni 2 secondi
-            }
-        } catch (Exception ignored) {}
-    }
-    /*
-    private boolean isSelf(String ip) {
-        try {
-            return InetAddress.getLocalHost().getHostAddress().equals(ip);
-        } catch (Exception e) {
-            return false;
-        }
-    }*/
-    private boolean isSelf(String ip) {
-        try {
-            Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces();
-            while (ifaces.hasMoreElements()) {
-                NetworkInterface iface = ifaces.nextElement();
-                for (InterfaceAddress addr : iface.getInterfaceAddresses()) {
-                    if (addr.getAddress().getHostAddress().equals(ip)) return true;
+                try {
+                    socket.send(packet);
+                    Thread.sleep(2000); // ogni 2 secondi
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LoggerUtil.logError("PeerDiscoveryService", "broadcast", "Broadcast thread interrupted", e);
+                    break;
+                } catch (Exception e) {
+                    LoggerUtil.logError("PeerDiscoveryService", "broadcast", "Error sending discovery broadcast", e);
+                    // Continue broadcasting even if one attempt fails
                 }
             }
-        } catch (Exception e) {}
-        return false;
+        } catch (Exception e) {
+            LoggerUtil.logError("PeerDiscoveryService", "broadcast", "Fatal error in discovery broadcaster", e);
+        }
+    }
+
+    private boolean isSelf(String ip) {
+        return ip.equals(NetworkUtils.getLocalIp());
     }
 }
