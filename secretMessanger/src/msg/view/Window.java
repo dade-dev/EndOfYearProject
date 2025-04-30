@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.util.Base64;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter; // Import FileNameExtensionFilter
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.StyledDocument;
@@ -104,6 +105,12 @@ public class Window extends JFrame {
 
 		sendImage.addActionListener(e -> {
 			JFileChooser chooser = new JFileChooser();
+			// Add a file filter for images
+			FileNameExtensionFilter imageFilter = new FileNameExtensionFilter(
+				"Image files (jpg, jpeg, png, gif, bmp)", "jpg", "jpeg", "png", "gif", "bmp");
+			chooser.setFileFilter(imageFilter);
+			chooser.setAcceptAllFileFilterUsed(false); // Optionally disable the "All Files" option
+
 			if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 				File img = chooser.getSelectedFile();
 				try {
@@ -166,6 +173,7 @@ public class Window extends JFrame {
 		// Apply initial theme before showing the window
 		toggleDarkMode(); // Apply initial theme (dark mode)
 		setVisible(true);
+		
 	}
 
 	public void appendText(String text) {
