@@ -13,24 +13,21 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.StyledDocument;
 import msg.controller.Controller;
-import java.awt.GridBagConstraints; // Import GridBagConstraints
-import java.awt.GridBagLayout; // Import GridBagLayout
-import java.awt.Insets; // Import Insets
 
 public class Window extends JFrame {
 	private static final long serialVersionUID = 1L;
-	private DefaultListModel<String> peersModel = new DefaultListModel<>();
-	private JList<String> peersList = new JList<>(peersModel);
-	private JTextPane chatPane = new JTextPane();
-	private JTextField inputArea = new JTextField();
-	private JTextField peerIpField = new JTextField(12);
-	private JButton sendBtn = new JButton("Invia");
-	private JButton sendImage = new JButton("Immagini");
-	private JButton addPeerBtn = new JButton("Aggiungi Peer");
-	private JButton renameChatBtn = new JButton("Rinomina chat");
-	private JButton removePeerBtn = new JButton("Rimuovi Peer");
-	private JButton darkModeBtn = new JButton("Dark Mode"); // Changed from JToggleButton
-	private JLabel statusLabel = new JLabel("");
+	private final DefaultListModel<String> peersModel = new DefaultListModel<>();
+	private final JList<String> peersList = new JList<>(peersModel);
+	private final JTextPane chatPane = new JTextPane();
+	private final JTextField inputArea = new JTextField();
+	private final JTextField peerIpField = new JTextField(12);
+	private final JButton sendBtn = new JButton("Invia");
+	private final JButton sendImage = new JButton("Immagini");
+	private final JButton addPeerBtn = new JButton("Aggiungi Peer");
+	private final JButton renameChatBtn = new JButton("Rinomina chat");
+	private final JButton removePeerBtn = new JButton("Rimuovi Peer");
+	private final JButton darkModeBtn = new JButton("Dark Mode"); // Changed from JToggleButton
+	private final JLabel statusLabel = new JLabel("");
 	private Controller controller;
 	private boolean isDarkMode = true; // Added state variable //Starts in darkmode ahh my eyes
 

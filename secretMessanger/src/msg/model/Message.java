@@ -1,10 +1,10 @@
 package msg.model;
 
-public class Message<T>{
+public class Message<T> {
 	private String message;
-	//this might be an Image or a video or a File of whatever we wanna implement
+	// this might be an Image or a video or a File of whatever we wanna implement
 	private T content;
-	
+
 	public Message(String msg, T cnt) {
 		message = msg;
 		content = cnt;

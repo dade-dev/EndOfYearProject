@@ -57,7 +57,7 @@ public class PeerDiscoveryService {
             LoggerUtil.logError("PeerDiscoveryService", "listen", "Error in discovery listener", e);
         }
     }
-    
+
     private void broadcast() {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setBroadcast(true);

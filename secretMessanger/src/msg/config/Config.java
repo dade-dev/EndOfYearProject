@@ -3,40 +3,48 @@ package msg.config;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
-
 import msg.util.LoggerUtil;
 
 public class Config {
-    private static final String CONFIG_PATH = "secretMessanger/src/msg/config/config.properties";
-    private static final String PASSWORD;
-    private static final byte[] SALT;
+    private static final String CONFIG_FOLDER = "config";
+    private static final String CONFIG_NAME = "config.properties";
+    private static String PASSWORD = "endofyearproject";
+    private static byte[] SALT = { 3, 14, 15, 9, 26, 5, 35, 89, 79, 32, 38, 46, 26, 43, 38, 32 };
+    private static int LISTEN_PORT = 9000;
 
     static {
-        File d=new File(CONFIG_PATH);
-        if(!d.exists()){
-            try {
-                d.createNewFile();
-            } catch (Exception e) {
-            }
+        File configDir = new File(CONFIG_FOLDER);
+        if (!configDir.exists()) {
+            configDir.mkdir();// mkdir for leading the user where to put the config file
+        }
+        File configFile = new File("" + CONFIG_FOLDER + "/" + CONFIG_NAME);
+        if (!configFile.exists()) {
+            LoggerUtil.logInfo("Config", "<staticInit>", "No configuration File");
         }
         Properties props = new Properties();
         String pwd = null;
         byte[] saltArr = null;
-        try (FileInputStream fis = new FileInputStream(CONFIG_PATH)) {
+        Integer listenPort = null;
+        try (FileInputStream fis = new FileInputStream(configFile)) {
             props.load(fis);
             pwd = props.getProperty("PASSWORD");
-            String[] saltStr = props.getProperty("SALT").split(",");
-            saltArr = new byte[saltStr.length];
-            for (int i = 0; i < saltStr.length; i++) {
-                saltArr[i] = Byte.parseByte(saltStr[i].trim());
+            String saltStr = props.getProperty("SALT");
+            if (pwd == null || saltStr == null) {
+                throw new Exception("Configuration file exists, but empty");
             }
+            String[] saltS = saltStr.split(",");
+            listenPort = Integer.valueOf(props.getProperty("LISTEN_PORT"));
+            saltArr = new byte[saltS.length];
+            for (int i = 0; i < saltS.length; i++) {
+                saltArr[i] = Byte.parseByte(saltS[i].trim());
+            }
+            PASSWORD = pwd;
+            SALT = saltArr;
+            LISTEN_PORT = listenPort;
         } catch (Exception e) {
-            pwd="endofyearproject";
-            saltArr=new byte[]{ 3, 14, 15, 9, 26, 5, 35, 89, 79, 32, 38, 46, 26, 43, 38, 32 };
-            LoggerUtil.logWarning("Config", "<staticInit>", "Using standard password and salt");
+            LoggerUtil.logError("Config", "<staticInit>", "", e);
+            LoggerUtil.logInfo("Config", "<staticInit>", "Using standard password, salt and listen port");
         }
-        PASSWORD = pwd;
-        SALT = saltArr;
     }
 
     public static String getPassword() {
@@ -45,5 +53,9 @@ public class Config {
 
     public static byte[] getSalt() {
         return SALT;
+    }
+
+    public static int getListenPort() {
+        return LISTEN_PORT;
     }
 }

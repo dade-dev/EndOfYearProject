@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
+import msg.config.Config;
 import msg.model.Message;
 import msg.model.Model;
 import msg.net.NetworkService;
@@ -21,7 +22,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
     private final NetworkService network;
     private final PeerDiscoveryService discovery;
     private final String myIp;
-    private final int listenPort = 9000;
 
     public Controller(Model model) {
         this.model = model;
@@ -33,15 +33,15 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         // Discovery & network
         this.discovery = new PeerDiscoveryService(this);
         this.discovery.start();
-        this.network = new NetworkService(listenPort, this);
+        this.network = new NetworkService(Config.getListenPort(), this);
         this.network.start();
 
         // Port
-        view.setStatus("In ascolto su porta " + listenPort);
+        view.setStatus("In ascolto su porta " + Config.getListenPort());
 
         // Personal Chat setup
         if (!model.getPeers().contains(myIp)) {
-             model.addMessage(myIp, "--- Questa è la tua chat personale ---");
+            model.addMessage(myIp, "--- Questa è la tua chat personale ---");
         }
         model.setChatName(myIp, "Me"); // Set default name for self-chat
 
@@ -49,38 +49,41 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         SwingUtilities.invokeLater(() -> {
             view.setPeers(getDisplayPeers());
             // Select "Me" chat initially if peers list is not empty
-             if (!model.getPeers().isEmpty()) {
-                 String selfDisplay = getDisplayPeers().stream()
-                                        .filter(p -> resolveIp(p).equals(myIp))
-                                        .findFirst()
-                                        .orElse(null);
-                 if (selfDisplay != null) {
+            if (!model.getPeers().isEmpty()) {
+                String selfDisplay = getDisplayPeers().stream()
+                        .filter(p -> resolveIp(p).equals(myIp))
+                        .findFirst()
+                        .orElse(null);
+                if (selfDisplay != null) {
                     view.selectPeer(selfDisplay);
                     onPeerSelected(selfDisplay); // Load self-chat history
-                 } else if (!getDisplayPeers().isEmpty()) {
-                     view.selectPeer(getDisplayPeers().get(0)); // Select first peer otherwise
-                     onPeerSelected(getDisplayPeers().get(0));
-                 }
-             }
+                } else if (!getDisplayPeers().isEmpty()) {
+                    view.selectPeer(getDisplayPeers().get(0)); // Select first peer otherwise
+                    onPeerSelected(getDisplayPeers().get(0));
+                }
+            }
         });
     }
-
+    public void start() {
+    	view.setVisible(true);
+    }
     private List<String> getDisplayPeers() {
         return model.getPeers().stream()
-            .map(ip -> {
-                String name = model.getChatName(ip);
-                // Ensure "Me" is displayed correctly without IP if name is "Me"
-                if (ip.equals(myIp) && name.equals("Me")) {
-                    return name;
-                }
-                // Otherwise, show Name (IP) or just IP if no name set
-                return (name != null && !name.equals(ip)) ? name + " (" + ip + ")" : ip;
-            })
-            .collect(Collectors.toList());
+                .map(ip -> {
+                    String name = model.getChatName(ip);
+                    // Ensure "Me" is displayed correctly without IP if name is "Me"
+                    if (ip.equals(myIp) && name.equals("Me")) {
+                        return name;
+                    }
+                    // Otherwise, show Name (IP) or just IP if no name set
+                    return (name != null && !name.equals(ip)) ? name + " (" + ip + ")" : ip;
+                })
+                .collect(Collectors.toList());
     }
 
     private String resolveIp(String display) {
-        if (display == null) return null;
+        if (display == null)
+            return null;
         // Handle "Me" case
         if (display.equals("Me")) {
             return myIp;
@@ -100,7 +103,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         SwingUtilities.invokeLater(() -> {
             // Set status message in the UI
             view.setStatus(message);
-            
+
             // Optional: you could add a system message to the chat
             if (!model.getPeers().contains(ip) && connected) {
                 // If this is a new peer that we just connected to, add them
@@ -109,7 +112,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
             } else if (model.getPeers().contains(ip)) {
                 // If it's an existing peer, add connection status to their chat
                 model.addMessage(ip, "--- " + message + " ---");
-                
+
                 // If this chat is currently selected, also update the view
                 String selectedDisplay = view.getSelectedPeer();
                 String selectedIp = resolveIp(selectedDisplay);
@@ -164,7 +167,8 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                     view.clearInput(); // Clear input after adding to UI
                 });
 
-                // 2. Encrypt and Send (only if not sending to self, or handle loopback if desired)
+                // 2. Encrypt and Send (only if not sending to self, or handle loopback if
+                // desired)
                 if (!targetIp.equals(myIp)) { // Avoid sending to self over network unless loopback is intended
                     // Try to connect to peer first - only try sending if connection is successful
                     if (network.connectToPeer(targetIp)) {
@@ -172,10 +176,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                         String payload = Base64.getEncoder().encodeToString(encrypted);
                         boolean sent = network.sendMessage(targetIp, payload);
                         if (sent) {
-                            SwingUtilities.invokeLater(() -> view.setStatus("Messaggio inviato a " + model.getChatName(targetIp)));
+                            SwingUtilities.invokeLater(
+                                    () -> view.setStatus("Messaggio inviato a " + model.getChatName(targetIp)));
                         }
                     } else {
-                        // Connection failed - the specific error message was already handled by onConnectionEvent
+                        // Connection failed - the specific error message was already handled by
+                        // onConnectionEvent
                         SwingUtilities.invokeLater(() -> {
                             view.appendText("--- Messaggio non inviato! Peer non raggiungibile. ---");
                             model.addMessage(targetIp, "--- Messaggio non inviato! Peer non raggiungibile. ---");
@@ -208,12 +214,11 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 SwingUtilities.invokeLater(() -> view.setStatus("Inserisci un IP valido (non il tuo)!"));
                 return;
             }
-            
-            
+
             if (!model.getPeers().contains(ip)) {
                 // Try to connect to the peer with 3 attempts, 2 seconds between attempts
                 boolean connected = network.connectToPeerWithRetry(ip, 3, 2000);
-                
+
                 if (connected) {
                     // Connection successful, add peer to model
                     model.addMessage(ip, "--- Conversazione iniziata ---");
@@ -243,32 +248,27 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         }).start();
     }
 
-    /**
-     * Removes a peer from the model and updates the UI.
-     * 
-     * @param ip The IP address of the peer to remove
-     */
     public void onRemovePeer(String ip) {
-        // Remember currently selected peer
-        final String currentlySelected = view.getSelectedPeer();
-        final String currentlySelectedIp = resolveIp(currentlySelected);
-        if(currentlySelectedIp.equals(myIp))
+
+        final String currentlySelectedIp = resolveIp(ip);
+        if (currentlySelectedIp.equals(myIp)) {
+            SwingUtilities.invokeLater(() -> {
+                view.setStatus("Non puoi rimuovere la tua chat personale");
+            });
             return;
-        
+        }
         // Remove peer from model
         model.removePeer(ip);
-        
+
         // Update UI
         final List<String> updatedPeers = getDisplayPeers();
         SwingUtilities.invokeLater(() -> {
             view.setPeers(updatedPeers);
-            
-            // If the removed peer was selected, select another peer
-            if (ip.equals(currentlySelectedIp)) {
-                if (!updatedPeers.isEmpty()) {
-                    view.selectPeer(updatedPeers.get(0));
-                    onPeerSelected(updatedPeers.get(0));
-                }
+
+            // If the removed peer was selected, select Me (first peer)
+            if (!updatedPeers.isEmpty()) {
+                view.selectPeer(updatedPeers.get(0));
+                onPeerSelected(updatedPeers.get(0));
             }
         });
     }
@@ -292,8 +292,9 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 
                             if (el.haveContent() && el.getContent() instanceof byte[]) {
                                 // It's an image message, stored prefix is in storedMsgText
-                                displayPrefix = storedMsgText; // The stored text *is* the prefix ("Tu: " or "PeerName: ")
-                                imageContent = new ImageIcon((byte[])el.getContent()).getImage();
+                                displayPrefix = storedMsgText; // The stored text *is* the prefix ("Tu: " or "PeerName:
+                                                               // ")
+                                imageContent = new ImageIcon((byte[]) el.getContent()).getImage();
                                 displayContent = ""; // No text content to display besides prefix
                             } else if (storedMsgText.startsWith("Tu: ")) {
                                 displayPrefix = "Tu: ";
@@ -301,7 +302,9 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                             } else if (storedMsgText.contains(": ")) { // Check if it's a peer message
                                 int colonPos = storedMsgText.indexOf(": ");
                                 // Use the *current* chat name for the prefix when displaying
-                                String peerPrefixPart = (currentChatName != null && !currentChatName.equals(ip)) ? currentChatName : ip;
+                                String peerPrefixPart = (currentChatName != null && !currentChatName.equals(ip))
+                                        ? currentChatName
+                                        : ip;
                                 displayPrefix = peerPrefixPart + ": ";
                                 displayContent = storedMsgText.substring(colonPos + 2);
                             } else if (storedMsgText.startsWith("---")) {
@@ -322,37 +325,38 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                         });
                     }
                 } else {
-                    // Handle case where chat history is unexpectedly null (e.g., after adding peer but before first message)
+                    // Handle case where chat history is unexpectedly null (e.g., after adding peer
+                    // but before first message)
                     model.addMessage(ip, "--- Chat creata ---"); // Add initial message if missing
-                     SwingUtilities.invokeLater(() -> view.appendText("--- Chat creata ---"));
+                    SwingUtilities.invokeLater(() -> view.appendText("--- Chat creata ---"));
                 }
                 // Update status after processing all messages (or creating chat)
-                final String statusUpdate = "Chat caricata: " + ((currentChatName != null && !currentChatName.equals(ip)) ? currentChatName : ip);
-                 SwingUtilities.invokeLater(() -> view.setStatus(statusUpdate));
+                final String statusUpdate = "Chat caricata: "
+                        + ((currentChatName != null && !currentChatName.equals(ip)) ? currentChatName : ip);
+                SwingUtilities.invokeLater(() -> view.setStatus(statusUpdate));
 
             } else {
-                 SwingUtilities.invokeLater(() -> view.setStatus("Nessun peer selezionato"));
+                SwingUtilities.invokeLater(() -> view.setStatus("Nessun peer selezionato"));
             }
         }).start();
     }
 
-
     public void onRenameChat(String display, String newName) {
-         if (display == null || newName == null || newName.isBlank()) {
-             SwingUtilities.invokeLater(() -> view.setStatus("Nome non valido."));
-             return;
-         }
+        if (display == null || newName == null || newName.isBlank()) {
+            SwingUtilities.invokeLater(() -> view.setStatus("Nome non valido."));
+            return;
+        }
 
         final String ip = resolveIp(display);
         if (ip == null) {
-             SwingUtilities.invokeLater(() -> view.setStatus("Seleziona una chat valida da rinominare."));
+            SwingUtilities.invokeLater(() -> view.setStatus("Seleziona una chat valida da rinominare."));
             return;
         }
-         // Prevent renaming self if "Me" is used
-         if (ip.equals(myIp) && display.equals("Me")) {
-              SwingUtilities.invokeLater(() -> view.setStatus("Non puoi rinominare la chat 'Me'."));
-             return;
-         }
+        // Prevent renaming self if "Me" is used
+        if (ip.equals(myIp) && display.equals("Me")) {
+            SwingUtilities.invokeLater(() -> view.setStatus("Non puoi rinominare la chat 'Me'."));
+            return;
+        }
 
         model.setChatName(ip, newName); // Update name in model
 
@@ -360,9 +364,9 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         SwingUtilities.invokeLater(() -> {
             final List<String> updatedPeers = getDisplayPeers(); // Get updated list
             final String newDisplay = updatedPeers.stream() // Find the new display name from the updated list
-                                        .filter(p -> resolveIp(p).equals(ip))
-                                        .findFirst()
-                                        .orElse(ip); // Fallback to IP if something goes wrong
+                    .filter(p -> resolveIp(p).equals(ip))
+                    .findFirst()
+                    .orElse(ip); // Fallback to IP if something goes wrong
 
             view.setPeers(updatedPeers); // Update the list in the view
             view.selectPeer(newDisplay); // Select the newly named peer
@@ -380,7 +384,8 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 String decryptedMsg = model.decrypt(encrypted); // The actual message content or "!IMG"+base64img
 
                 final String currentName = model.getChatName(senderIp); // Use current name
-                final String displayPrefix = (currentName != null && !currentName.equals(senderIp)) ? currentName + ": " : senderIp + ": "; // Prefix for display AND storage
+                final String displayPrefix = (currentName != null && !currentName.equals(senderIp)) ? currentName + ": "
+                        : senderIp + ": "; // Prefix for display AND storage
 
                 if (decryptedMsg.startsWith("!IMG")) {
                     byte[] imgBytes = Base64.getDecoder().decode(decryptedMsg.substring(4));
@@ -391,48 +396,48 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 
                     // Update UI on EDT only if the chat is currently selected
                     SwingUtilities.invokeLater(() -> {
-                         String selectedPeerDisplay = view.getSelectedPeer();
-                         String selectedPeerIp = resolveIp(selectedPeerDisplay);
-                         if (senderIp.equals(selectedPeerIp)) { // Only append if this chat is active
+                        String selectedPeerDisplay = view.getSelectedPeer();
+                        String selectedPeerIp = resolveIp(selectedPeerDisplay);
+                        if (senderIp.equals(selectedPeerIp)) { // Only append if this chat is active
                             view.appendText(displayPrefix);
                             view.appendImage(receivedImage);
-                         }
-                         view.setStatus("Immagine ricevuta da " + (currentName != null ? currentName : senderIp));
+                        }
+                        view.setStatus("Immagine ricevuta da " + (currentName != null ? currentName : senderIp));
                     });
                 } else {
-                     // Store text message with display prefix
+                    // Store text message with display prefix
                     model.addMessage(senderIp, displayPrefix + decryptedMsg);
 
                     // Update UI on EDT only if the chat is currently selected
                     SwingUtilities.invokeLater(() -> {
-                         String selectedPeerDisplay = view.getSelectedPeer();
-                         String selectedPeerIp = resolveIp(selectedPeerDisplay);
-                         if (senderIp.equals(selectedPeerIp)) { // Only append if this chat is active
+                        String selectedPeerDisplay = view.getSelectedPeer();
+                        String selectedPeerIp = resolveIp(selectedPeerDisplay);
+                        if (senderIp.equals(selectedPeerIp)) { // Only append if this chat is active
                             view.appendText(displayPrefix + decryptedMsg);
-                         }
-                         view.setStatus("Messaggio ricevuto da " + (currentName != null ? currentName : senderIp));
+                        }
+                        view.setStatus("Messaggio ricevuto da " + (currentName != null ? currentName : senderIp));
                     });
                 }
             } catch (Exception e) {
-                 final String errorMsg = e.getMessage();
-                 SwingUtilities.invokeLater(() -> view.setStatus("Errore ricezione: " + errorMsg));
-                 LoggerUtil.logError("Controller", "onMessageReceived", "Error processing received message from: " + senderIp, e);
+                final String errorMsg = e.getMessage();
+                SwingUtilities.invokeLater(() -> view.setStatus("Errore ricezione: " + errorMsg));
+                LoggerUtil.logError("Controller", "onMessageReceived",
+                        "Error processing received message from: " + senderIp, e);
             }
         }).start();
     }
 
-
     @Override
     public void onPeerDiscovered(String ip) {
         new Thread(() -> {
-        	if (!ip.equals(myIp) && !model.getPeers().contains(ip)) { // Don't discover self, check if already known
+            if (!ip.equals(myIp) && !model.getPeers().contains(ip)) { // Don't discover self, check if already known
                 model.addMessage(ip, "--- Peer trovato in rete ---");
                 final List<String> updatedPeers = getDisplayPeers();
                 final String status = "Peer trovato: " + ip;
-                 SwingUtilities.invokeLater(() -> {
+                SwingUtilities.invokeLater(() -> {
                     view.setPeers(updatedPeers);
                     view.setStatus(status);
-                 });
+                });
             }
         }).start();
     }
