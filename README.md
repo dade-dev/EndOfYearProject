@@ -1,18 +1,21 @@
-# Secure LAN Messenger
+# Secret Messenger
 
-A simple, secure, peer-to-peer LAN chat application written in Java.
+A secure, peer-to-peer LAN chat application with end-to-end encryption written in Java.
 
 ## Features
 
-- **End-to-end encryption:** Messages are encrypted using AES-128, with the key derived securely from a shared password using PBKDF2.
-- **Automatic peer discovery:** Connect to other users in your LAN by entering their IP address.
-- **Multiple chats:** Start and maintain a chat with each peer individually.
-- **Simple GUI:** Clean, intuitive graphical interface with peer list and chat window.
-- **Automatic chat switching:** When a new message is received, the chat view switches to the sender automatically.
+- **End-to-end encryption:** Messages are securely encrypted using AES with PBKDF2 key derivation (SHA-256)
+- **Multimedia support:** Send both text messages and images to your peers
+- **Automatic peer discovery:** Automatically finds other instances on your local network
+- **Personal notes:** Keep a personal chat for your own notes and reminders
+- **Chat management:** Rename chats for easier identification of peers
+- **Clean GUI:** Intuitive interface with a peer list, chat window, and status updates
+- **Connection status:** Real-time feedback on connection attempts and message delivery
+- **Configurable settings:** Adjust encryption parameters and network settings via config file
 
-## How it works
+## How It Works
 
-Each client runs on a local machine. Connections are established over the LAN using a user-chosen port. Messages are encrypted with AES-128, using a key derived from a shared password (the same password and salt must be used on all peers). The GUI is written using Swing.
+SecretMessenger establishes secure connections between peers on a local area network. Each message is encrypted using AES with a key derived from a shared password using PBKDF2. The application features automatic peer discovery, connection management, and a simple but effective GUI built with Java Swing.
 
 ## Setup
 
@@ -20,58 +23,69 @@ Each client runs on a local machine. Connections are established over the LAN us
 
 - Java 17 or higher
 
+### Configuration
+
+The application will look for a configuration file at `config/config.properties`. If not found, default values will be used.
+
+Example configuration file:
+```properties
+PASSWORD=your_secure_password_here
+SALT=random numbers separated by ',' like 3,14,15,9 and so on
+LISTEN_PORT=9000 # raccomended
+```
+
 ### Compilation
 
-Compile all `.java` files:
+Compile all Java source files with the bin directory as the output path:
 
 ```bash
-javac src/msg/**/*.java
+javac -d secretMessanger/bin secretMessanger/src/msg/*.java secretMessanger/src/msg/*/*.java
 ```
 
 ### Running
 
-From the root project directory:
+From the project root directory, run the application with:
 
 ```bash
-java -cp src msg.Main
+
+java -cp secretMessanger/bin msg.Main
 ```
 
-## Usage
+## Usage Guide
 
-1. **Start the application** on each computer in your LAN.
-2. **Set the same password** for all peers (see `Model.java`, or modify to request password at startup).
-3. **Enter the IP address** of another peer to connect and start chatting.
-4. **Type your message** and send. Chats are encrypted and visible only to the participants.
+1. **Start the application** on each computer you wish to connect
+2. **Add peers** by entering their IP addresses or wait for automatic discovery
+3. **Send messages** by selecting a peer from the list and typing in the message field
+4. **Send images** using the special image sharing functionality
+5. **Rename chats** for easier identification of your peers
+6. **Check connection status** in the status bar at the bottom of the window
 
-### GUI Overview
+### The Interface
 
-- **Peer List:** Shows all available chats and connected peers.
-- **Chat Area:** Displays the message history with the selected peer.
-- **Input Field:** Type your message here.
-- **Status Bar:** Shows connection and message status.
+- **Peer List:** Shows all connected peers with their names/IPs
+- **Chat Area:** Displays your conversation with the selected peer
+- **Input Field:** Type messages or use special commands here
+- **Status Bar:** Shows connection status and message confirmation
 
-When a message arrives from another peer, the chat view will switch automatically to that peer.
+## Security Notes
 
-## Security
+- **Encryption:** Uses AES with PBKDF2 key derivation function (SHA-256)
+- **Shared Password:** All peers must use the same password for successful communication
+- **No message persistence:** Messages are stored in memory only during the session
+- **Local network only:** Designed for use within trusted local networks
 
-- **Encryption:** Uses AES-128 in ECB mode, with the key derived from PBKDF2 (SHA-256) using a shared password and salt.
-- **Key Management:** All peers must use the same password and salt for communication.
-- **No message storage:** All messages are kept in-memory only for the session duration.
+## Advanced Usage
 
-**Note:** For production use, consider using a random IV and a stronger cipher mode (such as CBC or GCM), and allow password entry at runtime.
-
-## Customization
-
-- **Change the port:** Edit the listening port in `NetworkService.java`.
-- **Change the password and salt:** Edit the relevant fields in `Model.java`.
-- **Password prompt:** For better usability, modify the app to prompt for the password at startup.
+- Use the personal chat (labeled "Me") for keeping notes to yourself
+- Configure the application by editing the config.properties file
+- Monitor connections through the status updates in the application window
 
 ## License
 
-This project is released under the MIT License.
+This project is available under the MIT License.
 
 ---
 
 ### Disclaimer
 
-This project is intended for educational purposes. It is not intended for use in security-critical environments.
+This application is designed for educational purposes. While it implements strong encryption, it should not be relied upon for transmitting highly sensitive information in security-critical environments.
