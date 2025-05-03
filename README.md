@@ -31,7 +31,7 @@ Example configuration file:
 ```properties
 PASSWORD=your_secure_password_here
 SALT=random numbers separated by ',' like 3,14,15,9 and so on
-LISTEN_PORT=9000 # raccomended
+LISTEN_PORT=9000 # recommended
 ```
 
 ### Compilation
