@@ -169,39 +169,37 @@ public class Window extends JFrame {
 
 		// Apply initial theme before showing the window
 		toggleDarkMode(); // Apply initial theme (dark mode)
-		setVisible(true);
 		
 	}
 
 	public void appendText(String text) {
-		StyledDocument doc = chatPane.getStyledDocument();
-		try {
-			doc.insertString(doc.getLength(), text + "\n", null);
-			chatPane.setCaretPosition(doc.getLength());
-		} catch (BadLocationException ignored) {
-		}
+		SwingUtilities.invokeLater(() -> {
+			StyledDocument doc = chatPane.getStyledDocument();
+			try {
+				doc.insertString(doc.getLength(), text + "\n", null);
+				chatPane.setCaretPosition(doc.getLength());
+			} catch (BadLocationException ignored) {}
+		});
 	}
 
 	public void appendImage(Image img) {
-		StyledDocument doc = chatPane.getStyledDocument();
-		try {
-			if (img.getWidth(null) > 400) {
-				img = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH);
-			}
-			doc.insertString(doc.getLength(), "\n", null);
-
-			chatPane.setCaretPosition(doc.getLength());
-			chatPane.insertIcon(new ImageIcon(img));
-
-			doc.insertString(doc.getLength(), "\n", null);
-
-			chatPane.setCaretPosition(doc.getLength());
-
-			// Force the repainting for some bug of Java
-			chatPane.revalidate();
-			chatPane.repaint();
-		} catch (BadLocationException ignored) {
-		}
+		SwingUtilities.invokeLater(() -> {
+			StyledDocument doc = chatPane.getStyledDocument();
+			try {
+				doc.insertString(doc.getLength(), "\n", null);
+	
+				chatPane.setCaretPosition(doc.getLength());
+				chatPane.insertIcon(new ImageIcon(img.getScaledInstance(400, -1, Image.SCALE_SMOOTH)));
+	
+				doc.insertString(doc.getLength(), "\n", null);
+	
+				chatPane.setCaretPosition(doc.getLength());
+	
+				// Force the repainting for some bug of Java
+				chatPane.revalidate();
+				chatPane.repaint();
+			} catch (BadLocationException ignored) {}
+		});
 	}
 
 	public void selectPeer(String display) {
@@ -233,33 +231,11 @@ public class Window extends JFrame {
 		Color btnFg = isDarkMode ? Color.WHITE : Color.BLACK;
 		Color selectBg = isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"); // Use List selection background
 		Color listBg = isDarkMode ? new Color(60, 60, 60) : Color.WHITE;
-
+		
+		SwingUtilities.invokeLater(() -> updateComponentColors((JPanel) getContentPane(), bg, fg, btnBg, btnFg, listBg,selectBg, isDarkMode));
+		
 		darkModeBtn.setText(isDarkMode ? "Light Mode" : "Dark Mode"); // Update button text
-
-		getContentPane().setBackground(bg);
-
-		chatPane.setBackground(listBg);
-		chatPane.setForeground(fg);
-		inputArea.setBackground(listBg);
-		inputArea.setForeground(fg);
-		peersList.setBackground(listBg);
-		peersList.setForeground(fg);
-		peersList.setSelectionBackground(selectBg);
-		peersList.setSelectionForeground(fg); // Ensure selected text is visible
-		statusLabel.setForeground(fg);
-
-		// Apply styles to all relevant buttons
-		JButton[] buttonsToStyle = { sendBtn, sendImage, addPeerBtn, renameChatBtn, darkModeBtn };
-		for (JButton btn : buttonsToStyle) { // Iterate over JButtons
-			btn.setBackground(btnBg);
-			btn.setForeground(btnFg);
-			btn.setOpaque(true);
-			btn.setBorderPainted(false);
-			btn.setFocusPainted(false);
-		}
-
-		// Update colors recursively for panels and components
-		updateComponentColors((JPanel) getContentPane(), bg, fg, btnBg, btnFg, listBg, isDarkMode);
+		
 		repaint();
 	}
 
@@ -276,7 +252,7 @@ public class Window extends JFrame {
 	}
 
 	// Renamed and corrected recursive update method
-	private void updateComponentColors(Container container, Color bg, Color fg, Color btnBg, Color btnFg, Color listBg, boolean darkMode) {
+	private void updateComponentColors(Container container, Color bg, Color fg, Color btnBg, Color btnFg, Color listBg, Color selectBg, boolean darkMode) {
 		container.setBackground(bg);
 		container.setForeground(fg);
 
@@ -286,27 +262,11 @@ public class Window extends JFrame {
 
 			if (comp instanceof JButton) {
 				JButton btn = (JButton) comp;
-				// Avoid restyling buttons already handled if needed, though reapplying is usually fine
-				// Check if it's one of the main buttons if specific styling is needed
-				boolean isMainButton = false;
-				JButton[] mainButtons = { sendBtn, sendImage, addPeerBtn, renameChatBtn, darkModeBtn };
-				for(JButton mainBtn : mainButtons) {
-					if (btn == mainBtn) {
-						isMainButton = true;
-						break;
-					}
-				}
-				if (isMainButton) {
-					btn.setBackground(btnBg);
-					btn.setForeground(btnFg);
-					btn.setOpaque(true);
-					btn.setBorderPainted(false);
-					btn.setFocusPainted(false);
-				} else {
-					// Style other potential JButtons if necessary
-					btn.setBackground(btnBg); // Apply default button style
-					btn.setForeground(btnFg);
-				}
+				btn.setBackground(btnBg);
+				btn.setForeground(btnFg);
+				btn.setOpaque(true);
+				btn.setBorderPainted(false);
+				btn.setFocusPainted(false);
 			} else if (comp instanceof JTextField) {
 				comp.setBackground(listBg); // Use listBg for text fields
 				comp.setForeground(fg);
@@ -317,19 +277,20 @@ public class Window extends JFrame {
 				JList<?> list = (JList<?>) comp;
 				list.setBackground(listBg);
 				list.setForeground(fg);
-				list.setSelectionBackground(isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"));
+				list.setSelectionBackground(selectBg);
 				list.setSelectionForeground(fg);
 			} else if (comp instanceof JScrollPane) {
 				JScrollPane scrollPane = (JScrollPane) comp;
-				scrollPane.getViewport().setBackground(listBg); // Background for viewport content
 				scrollPane.setBackground(bg); // Scroll pane background itself
-				// Style scrollbars if needed (more complex)
+				updateComponentColors(scrollPane.getViewport(), bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
 			} else if (comp instanceof JLabel) {
 				comp.setForeground(fg); // Only set foreground for labels
 			} else if (comp instanceof JPanel) { // Recurse into JPanels
-				updateComponentColors((JPanel) comp, bg, fg, btnBg, btnFg, listBg, darkMode);
+				updateComponentColors((JPanel) comp, bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
 			} else if (comp instanceof Container) { // Recurse for other container types
-                updateComponentColors((Container) comp, bg, fg, btnBg, btnFg, listBg, darkMode);
+                updateComponentColors((Container) comp, bg, fg, btnBg, btnFg, listBg,selectBg, darkMode);
+            } else {
+            	throw new RuntimeException("Unhandled component: " + comp.getClass().getName());
             }
 		}
 	}
