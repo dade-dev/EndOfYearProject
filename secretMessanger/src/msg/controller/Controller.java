@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
-import msg.config.Config;
 import msg.model.Message;
 import msg.model.Model;
 import msg.net.NetworkService;
-import msg.net.PeerDiscoveryService;
 import msg.util.LoggerUtil;
 import msg.util.NetworkUtils;
+import msg.net.PeerDiscoveryService;
 import msg.view.Window;
+import msg.config.Config;
 
 @SuppressWarnings("rawtypes")
 public class Controller implements NetworkService.MessageListener, PeerDiscoveryService.DiscoveryListener {
