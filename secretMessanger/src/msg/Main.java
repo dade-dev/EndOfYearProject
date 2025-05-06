@@ -13,8 +13,10 @@ public class Main {
                 Controller c = new Controller(m);
                 c.start();
             } catch (Exception e) {
-                LoggerUtil.logError("Main","main", "Impossibile avviare l'applicazione!\n", e);
-                e.printStackTrace();
+                String msg = "Impossibile avviare l'applicazione!\n";
+                LoggerUtil.logError("Main","main", msg , e);
+                System.out.println(msg + e.getMessage());
+               
             }
         });
     }

@@ -1,6 +1,5 @@
 package msg.model;
 
-import java.awt.Image;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.spec.KeySpec;
@@ -9,14 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
-
 import msg.config.Config;
 
 @SuppressWarnings("rawtypes")
@@ -51,20 +48,14 @@ public class Model {
     }
 
 
-    
     public void addMessage(String peerIp, String msg) {
-        //ArrayList<Message> tmp = (ArrayList<Message>) chats.getOrDefault(peerIp,new ArrayList<>());
-        //tmp.add(new Message<>(msg,null));
-        //chats.put(peerIp, tmp);
-    	this.addMessage(peerIp, msg,null);
+    	addMessage(peerIp, msg,null);
     }
     public void addMessage(String peerIp, String msg, byte[] data) {
-        ArrayList<Message> tmp = (ArrayList<Message>) chats.getOrDefault(peerIp,new ArrayList<>());
-        try{
-        	tmp.add(new Message<>(msg,data !=null ? ImageIO.read(new ByteArrayInputStream(data)) : null));
-        }catch(IOException ignored) {}
-        
-        chats.put(peerIp, tmp);
+        List<Message> tmp = chats.computeIfAbsent(peerIp, k -> new ArrayList<>());
+        try {
+            tmp.add(new Message<>(msg, data!=null ? ImageIO.read(new ByteArrayInputStream(data)) : null));
+        } catch (IOException e) {}
     }
 
     public List<Message> getChat(String peerIp) {
@@ -77,6 +68,10 @@ public class Model {
 
     public void setChatName(String peerIp, String name) {
         chatNames.put(peerIp, name);
+        chats.get(peerIp).stream().filter(m -> m.haveContent()).forEach(m -> {
+            if(m.getMessage().contains(peerIp))
+                m.setMessage(name+": ");
+        });// For images, for msg we send prefix + message 
     }
 
     public String getChatName(String peerIp) {

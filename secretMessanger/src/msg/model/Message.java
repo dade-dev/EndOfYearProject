@@ -3,7 +3,7 @@ package msg.model;
 public class Message<T> {
 	private String message;
 	// this might be an Image or a video or a File of whatever we wanna implement
-	private T content;
+	private final T content;
 
 	public Message(String msg, T cnt) {
 		message = msg;
@@ -20,5 +20,8 @@ public class Message<T> {
 
 	public T getContent() {
 		return content;
+	}
+	public void setMessage(String msg){
+		message = msg;
 	}
 }

@@ -9,7 +9,6 @@ public class NetworkService {
 
     public interface MessageListener {
         void onMessageReceived(String senderIp, String base64Message);
-
         void onConnectionEvent(String ip, boolean connected, String message);
     }
 
@@ -210,7 +209,7 @@ public class NetworkService {
         }
     }
 
-    private void removePeer(String ip) {
+    public void removePeer(String ip) {
         // Clean up outgoing connection
         Socket outSocket = outgoing.remove(ip);
         if (outSocket != null) {

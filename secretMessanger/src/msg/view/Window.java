@@ -30,7 +30,7 @@ public class Window extends JFrame {
 	private final JLabel statusLabel = new JLabel("");
 	private Controller controller;
 	private boolean isDarkMode = true; // Added state variable //Starts in darkmode ahh my eyes
-
+	
 	public Window(Controller c) {
 		this.controller = c;
 
@@ -135,9 +135,12 @@ public class Window extends JFrame {
 			if (sel != null) controller.onRemovePeer(sel);
 		});
 
+		// Replace original listener with suppression logic
 		peersList.addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting())
+			if (!e.getValueIsAdjusting()){
+				clearChat();
 				controller.onPeerSelected(peersList.getSelectedValue());
+			}
 		});
 
 		peerIpField.addKeyListener(new KeyAdapter() {
@@ -232,7 +235,7 @@ public class Window extends JFrame {
 		Color selectBg = isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"); // Use List selection background
 		Color listBg = isDarkMode ? new Color(60, 60, 60) : Color.WHITE;
 		
-		SwingUtilities.invokeLater(() -> updateComponentColors((JPanel) getContentPane(), bg, fg, btnBg, btnFg, listBg,selectBg, isDarkMode));
+		SwingUtilities.invokeLater(() -> updateComponentColors(getContentPane(), bg, fg, btnBg, btnFg, listBg,selectBg, isDarkMode));
 		
 		darkModeBtn.setText(isDarkMode ? "Light Mode" : "Dark Mode"); // Update button text
 		
@@ -260,8 +263,7 @@ public class Window extends JFrame {
 			comp.setBackground(bg);
 			comp.setForeground(fg);
 
-			if (comp instanceof JButton) {
-				JButton btn = (JButton) comp;
+			if (comp instanceof JButton btn) {
 				btn.setBackground(btnBg);
 				btn.setForeground(btnFg);
 				btn.setOpaque(true);
@@ -273,22 +275,20 @@ public class Window extends JFrame {
 			} else if (comp instanceof JTextPane) {
 				comp.setBackground(listBg);
 				comp.setForeground(fg);
-			} else if (comp instanceof JList) {
-				JList<?> list = (JList<?>) comp;
+			} else if (comp instanceof JList list) {
 				list.setBackground(listBg);
 				list.setForeground(fg);
 				list.setSelectionBackground(selectBg);
 				list.setSelectionForeground(fg);
-			} else if (comp instanceof JScrollPane) {
-				JScrollPane scrollPane = (JScrollPane) comp;
+			} else if (comp instanceof JScrollPane scrollPane) {
 				scrollPane.setBackground(bg); // Scroll pane background itself
 				updateComponentColors(scrollPane.getViewport(), bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
 			} else if (comp instanceof JLabel) {
 				comp.setForeground(fg); // Only set foreground for labels
-			} else if (comp instanceof JPanel) { // Recurse into JPanels
-				updateComponentColors((JPanel) comp, bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
-			} else if (comp instanceof Container) { // Recurse for other container types
-                updateComponentColors((Container) comp, bg, fg, btnBg, btnFg, listBg,selectBg, darkMode);
+			} else if (comp instanceof JPanel pane) { // Recurse into JPanels
+				updateComponentColors(pane, bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
+			} else if (comp instanceof Container cont) { // Recurse for other container types
+                updateComponentColors(cont, bg, fg, btnBg, btnFg, listBg,selectBg, darkMode);
             } else {
             	throw new RuntimeException("Unhandled component: " + comp.getClass().getName());
             }

@@ -19,7 +19,7 @@ public class NetworkUtils {
             while (ifaces.hasMoreElements()) {
                 NetworkInterface iface = ifaces.nextElement();
                 String name = iface.getDisplayName().toLowerCase();
-                if (iface.isLoopback() || !iface.isUp() || name.contains("ham") || name.contains("ztt"))
+                if (iface.isLoopback() || !iface.isUp() || iface.isVirtual() || name.contains("ham") || name.contains("ztt"))
                     continue;
                 for (InterfaceAddress addr : iface.getInterfaceAddresses()) {
                     String ip = addr.getAddress().getHostAddress();

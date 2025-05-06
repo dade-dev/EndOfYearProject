@@ -22,9 +22,9 @@ public class Config {
             LoggerUtil.logInfo("Config", "<staticInit>", "No configuration File");
         }
         Properties props = new Properties();
-        String pwd = null;
-        byte[] saltArr = null;
-        Integer listenPort = null;
+        String pwd;
+        byte[] saltArr;
+        Integer listenPort;
         try (FileInputStream fis = new FileInputStream(configFile)) {
             props.load(fis);
             pwd = props.getProperty("PASSWORD");
