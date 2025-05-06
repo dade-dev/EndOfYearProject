@@ -374,7 +374,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         SwingUtilities.invokeLater(() ->{
             final List<String> updatedPeers = getDisplayPeers(); // Get updated list
             view.setPeers(updatedPeers); // Update the list in the view
-
+            view.selectPeer(getDisplay(ip,ip));
             view.setStatus("Chat rinominata: " + newName);
         });
     }
