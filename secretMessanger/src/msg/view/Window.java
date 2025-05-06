@@ -235,7 +235,7 @@ public class Window extends JFrame {
 		Color selectBg = isDarkMode ? new Color(100, 100, 100) : UIManager.getColor("List.selectionBackground"); // Use List selection background
 		Color listBg = isDarkMode ? new Color(60, 60, 60) : Color.WHITE;
 		
-		SwingUtilities.invokeLater(() -> updateComponentColors(getContentPane(), bg, fg, btnBg, btnFg, listBg,selectBg, isDarkMode));
+		SwingUtilities.invokeLater(() -> { updateComponentColors(getContentPane(), bg, fg, btnBg, btnFg, listBg, selectBg, isDarkMode);});
 		
 		darkModeBtn.setText(isDarkMode ? "Light Mode" : "Dark Mode"); // Update button text
 		
@@ -258,7 +258,7 @@ public class Window extends JFrame {
 	private void updateComponentColors(Container container, Color bg, Color fg, Color btnBg, Color btnFg, Color listBg, Color selectBg, boolean darkMode) {
 		container.setBackground(bg);
 		container.setForeground(fg);
-
+		
 		for (Component comp : container.getComponents()) {
 			comp.setBackground(bg);
 			comp.setForeground(fg);
@@ -269,12 +269,14 @@ public class Window extends JFrame {
 				btn.setOpaque(true);
 				btn.setBorderPainted(false);
 				btn.setFocusPainted(false);
-			} else if (comp instanceof JTextField) {
-				comp.setBackground(listBg); // Use listBg for text fields
-				comp.setForeground(fg);
-			} else if (comp instanceof JTextPane) {
-				comp.setBackground(listBg);
-				comp.setForeground(fg);
+			} else if (comp instanceof JTextField textField) {
+				textField.setBackground(listBg); // Use listBg for text fields
+				textField.setForeground(fg);
+				textField.setCaretColor(fg);
+			} else if (comp instanceof JTextPane textPane) {
+				textPane.setBackground(listBg);
+				textPane.setForeground(fg);
+				textPane.setCaretColor(fg);
 			} else if (comp instanceof JList list) {
 				list.setBackground(listBg);
 				list.setForeground(fg);

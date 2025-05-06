@@ -298,7 +298,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                                         : ip;
                                 displayPrefix = peerPrefixPart + ": ";
                                 displayContent = storedMsgText.substring(colonPos + 2);
-                                System.out.println(ip+ displayPrefix + displayContent);
                             }
                             // else: handle other cases or display raw storedMsgText if needed
 
@@ -351,10 +350,8 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         // Update UI on EDT
         SwingUtilities.invokeLater(() ->{
             final List<String> updatedPeers = getDisplayPeers(); // Get updated list
-            final String newDisplay = getDisplay(ip,ip); // Fallback to IP if something goes wrong
-
             view.setPeers(updatedPeers); // Update the list in the view
-            
+
             view.setStatus("Chat rinominata: " + newName);
         });
     }

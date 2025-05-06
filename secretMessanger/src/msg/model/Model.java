@@ -69,9 +69,9 @@ public class Model {
     public void setChatName(String peerIp, String name) {
         chatNames.put(peerIp, name);
         chats.get(peerIp).stream().filter(m -> m.haveContent()).forEach(m -> {
-            if(m.getMessage().contains(peerIp))
+            if(!m.getMessage().equals("Tu: "))
                 m.setMessage(name+": ");
-        });// For images, for msg we send prefix + message 
+        });// For images
     }
 
     public String getChatName(String peerIp) {
