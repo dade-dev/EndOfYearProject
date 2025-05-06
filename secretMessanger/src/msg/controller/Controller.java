@@ -220,11 +220,19 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 if (connected) {
                     // Connection successful, add peer to model
                     model.addMessage(ip, "--- Conversazione iniziata ---");
-                    final List<String> updatedPeers = getDisplayPeers();
+                    final List<String> updatedPeers = getDisplayPeers(); 
                     final String status = "Peer aggiunto: " + ip;
+                    final String finalIp = ip; // for use in lambda
                     
-                    view.setPeers(updatedPeers);
-                    view.setStatus(status);
+                    SwingUtilities.invokeLater(() -> {
+                        view.setPeers(updatedPeers);
+                        view.setStatus(status);
+                        // Optionally, select the newly added peer
+                        String newPeerDisplay = getDisplay(finalIp, null);
+                        if (newPeerDisplay != null) {
+                            view.selectPeer(newPeerDisplay);
+                        }
+                    });
                 } else {
                     // Connection failed after retries, don't add the peer
                 	view.setStatus("Peer non aggiunto: impossibile connettersi a " + ip + " dopo 3 tentativi");
@@ -233,7 +241,8 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 // Try to verify the existing connection
                 if (!network.isPeerConnected(ip) && !network.connectToPeerWithRetry(ip, 3, 2000)) {
                     // Remove peer after 3 failed connection attempts
-                    onRemovePeer(ip);
+                    // onRemovePeer itself should handle UI updates on EDT if necessary
+                    onRemovePeer(ip); // Assuming onRemovePeer correctly handles its UI updates
                     view.setStatus("Peer rimosso: impossibile connettersi a " + ip);
                 } else {
                     view.setStatus("Peer già presente: " + ip);
@@ -243,28 +252,42 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
         }).start();
     }
 
-    public void onRemovePeer(String ip) {
+    public void onRemovePeer(String display) { // Changed 'ip' to 'display' to match how it's called
 
-        final String currentlySelectedIp = resolveIp(ip);
-        if (currentlySelectedIp.equals(myIp)) {
+        final String ipToRemove = resolveIp(display);
+        if (ipToRemove == null) {
+            view.setStatus("Impossibile risolvere l'IP per la rimozione.");
+            return;
+        }
+
+        if (ipToRemove.equals(myIp)) {
             view.setStatus("Non puoi rimuovere la tua chat personale");
             return;
         }
         // Remove peer from model
-        model.removePeer(currentlySelectedIp);
+        model.removePeer(ipToRemove);
 
         // Remove peer from Sockets
-        network.removePeer(currentlySelectedIp);
+        network.removePeer(ipToRemove);
 
-        // Update UI
-        final List<String> updatedPeers = getDisplayPeers();
-        view.setPeers(updatedPeers);
+        // Update UI on EDT
+        SwingUtilities.invokeLater(() -> {
+            final List<String> updatedPeers = getDisplayPeers();
+            view.setPeers(updatedPeers);
+            if (updatedPeers.isEmpty()) {
+                view.clearChat();
+                view.setStatus("Nessun peer disponibile.");
+            } else {
+                view.selectPeer(updatedPeers.get(0));
+                 // If setPeers doesn't auto-select, and no listener is reliably selecting the first, uncomment:
+            }
+            view.setStatus("Peer rimosso: " + display);
+        });
     }
 
     public void onPeerSelected(String display) {
         new Thread(() -> {
             final String ip = resolveIp(display);
-            view.clearChat();
 
             if (ip != null) {
                 final String currentChatName = model.getChatName(ip); // Get current name

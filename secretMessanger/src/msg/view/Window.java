@@ -136,12 +136,14 @@ public class Window extends JFrame {
 		});
 
 		// Replace original listener with suppression logic
-		peersList.addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting()){
-				clearChat();
-				controller.onPeerSelected(peersList.getSelectedValue());
-			}
-		});
+        peersList.addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) { return; }
+            String selectedValue = peersList.getSelectedValue();
+            if (selectedValue != null) {
+                clearChat(); // Clear chat here 
+                controller.onPeerSelected(selectedValue);
+            }
+        });
 
 		peerIpField.addKeyListener(new KeyAdapter() {
 			@Override
@@ -210,13 +212,8 @@ public class Window extends JFrame {
 	}
 
 	public void setPeers(List<String> peers) {
-		String prev = peersList.getSelectedValue();
 		peersModel.clear();
 		peers.forEach(peersModel::addElement);
-		if (prev != null && peers.contains(prev))
-			peersList.setSelectedValue(prev, true);
-		else if (!peers.isEmpty())
-			peersList.setSelectedIndex(0);
 	}
 
 	public void setStatus(String text) {
