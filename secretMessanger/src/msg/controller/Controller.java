@@ -115,7 +115,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 String selectedDisplay = view.getSelectedPeer();
                 String selectedIp = resolveIp(selectedDisplay);
                 if (ip.equals(selectedIp)) {
-                    if(args[0].getClass() == (new Object()).getClass())
+                    if(args.length !=0)
                         view.appendText("--- " + message + " ---");
                 }
             }

@@ -169,7 +169,7 @@ public class NetworkService {
 
         // Notify listener about new incoming connection
         if (listener != null) {
-            listener.onConnectionEvent(ip, true, "Online" + ip,new Object());
+            listener.onConnectionEvent(ip, true, "Online " + ip,new Object());
         }
     }
 
