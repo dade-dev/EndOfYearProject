@@ -30,6 +30,7 @@ public class Window extends JFrame {
 	private final JLabel statusLabel = new JLabel("");
 	private Controller controller;
 	private boolean isDarkMode = true; // Added state variable //Starts in darkmode ahh my eyes
+	private final JLabel peerStatusLabel = new JLabel("");
 	
 	public Window(Controller c) {
 		this.controller = c;
@@ -81,6 +82,18 @@ public class Window extends JFrame {
 		// --- End of leftBottom panel changes ---
 
 		JPanel centerPanel = new JPanel(new BorderLayout());
+		
+		JPanel chatHeaderPanel = new JPanel(new BorderLayout());
+		JLabel chatTitleLabel = new JLabel("Chat");
+		chatHeaderPanel.add(chatTitleLabel, BorderLayout.WEST);
+		
+		peerStatusLabel.setOpaque(true);
+		peerStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		peerStatusLabel.setBorder(BorderFactory.createEmptyBorder(2, 10, 2, 10));
+		peerStatusLabel.setVisible(false); //Nascosto inizialmente
+		chatHeaderPanel.add(peerStatusLabel, BorderLayout.EAST);
+		
+		centerPanel.add(chatHeaderPanel, BorderLayout.NORTH);
 		centerPanel.add(new JScrollPane(chatPane), BorderLayout.CENTER);
 
 		JPanel inputPanel = new JPanel(new BorderLayout());
@@ -207,8 +220,22 @@ public class Window extends JFrame {
 		});
 	}
 
+	public void updatePeerStatus(boolean online) {
+	    if (online) {
+	        peerStatusLabel.setText("Online");
+	        peerStatusLabel.setBackground(new Color(76, 175, 80)); //Verde
+	        peerStatusLabel.setForeground(Color.WHITE);
+	    } else {
+	        peerStatusLabel.setText("Offline");
+	        peerStatusLabel.setBackground(new Color(244, 67, 54)); //Rosso
+	        peerStatusLabel.setForeground(Color.WHITE);
+	    }
+	    peerStatusLabel.setVisible(true);
+	}
+
 	public void selectPeer(String display) {
 		peersList.setSelectedValue(display, true);
+		peerStatusLabel.setVisible(false);
 	}
 
 	public void setPeers(List<String> peers) {
@@ -282,8 +309,10 @@ public class Window extends JFrame {
 			} else if (comp instanceof JScrollPane scrollPane) {
 				scrollPane.setBackground(bg); // Scroll pane background itself
 				updateComponentColors(scrollPane.getViewport(), bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
-			} else if (comp instanceof JLabel) {
-				comp.setForeground(fg); // Only set foreground for labels
+			} else if (comp instanceof JLabel label) {
+				if (label != peerStatusLabel) {
+					comp.setForeground(fg); // Only set foreground for labels
+				}
 			} else if (comp instanceof JPanel pane) { // Recurse into JPanels
 				updateComponentColors(pane, bg, fg, btnBg, btnFg, listBg, selectBg,darkMode);
 			} else if (comp instanceof Container cont) { // Recurse for other container types

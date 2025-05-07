@@ -9,7 +9,8 @@ public class NetworkService {
 
     public interface MessageListener {
         void onMessageReceived(String senderIp, String base64Message);
-        void onConnectionEvent(String ip, boolean connected, String message,Object ... args);
+        void onConnectionEvent(String ip, boolean connected, String message, Object ... args);
+        void onPeerStatusChange(String ip, boolean online); // Nuovo metodo per notificare lo stato del peer
     }
 
     private final int listenPort;
@@ -18,6 +19,7 @@ public class NetworkService {
     private final ConcurrentMap<String, BufferedWriter> outWriters = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Socket> incoming = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, BufferedWriter> inWriters = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Boolean> peerStatus = new ConcurrentHashMap<>(); // Mappa per tracciare lo stato dei peer
     private boolean running = false;
 
     public NetworkService(int listenPort, MessageListener listener) {
@@ -49,6 +51,13 @@ public class NetworkService {
         if (outgoing.containsKey(ip)) {
             // Already connected, check if connection is still valid
             if (isConnectionValid(outgoing.get(ip))) {
+                // Connection is valid, ensure status is set to online
+                if (peerStatus.getOrDefault(ip, false) == false) {
+                    peerStatus.put(ip, true);
+                    if (listener != null) {
+                        listener.onPeerStatusChange(ip, true);
+                    }
+                }
                 return true;
             } else {
                 // Connection is dead, remove it so we can try again
@@ -69,10 +78,12 @@ public class NetworkService {
             }
             return true;
         } catch (UnknownHostException e) {
-            // Handle when hostname can't be resolved (e.g., when a name is entered instead
-            // of IP)
+            // Handle when hostname can't be resolved (e.g., when a name is entered instead of IP)
             if (listener != null) {
                 listener.onConnectionEvent(ip, false, "Host non trovato: " + ip);// We check the ip is valid
+                // Ensure peer status is set to offline
+                peerStatus.put(ip, false);
+                listener.onPeerStatusChange(ip, false);
             }
             LoggerUtil.logError("NetworkService", "connectToPeer", "Unknown host: " + ip, e);
             return false;
@@ -80,6 +91,9 @@ public class NetworkService {
             // Handle connection refused (peer not listening or firewall)
             if (listener != null) {
                 listener.onConnectionEvent(ip, false, "Connessione rifiutata a " + ip);
+                // Ensure peer status is set to offline
+                peerStatus.put(ip, false);
+                listener.onPeerStatusChange(ip, false);
             }
             LoggerUtil.logError("NetworkService", "connectToPeer", "Connection refused to: " + ip, e);
             return false;
@@ -87,6 +101,9 @@ public class NetworkService {
             // Handle timeout (no response)
             if (listener != null) {
                 listener.onConnectionEvent(ip, false, "Timeout connessione a " + ip);
+                // Ensure peer status is set to offline
+                peerStatus.put(ip, false);
+                listener.onPeerStatusChange(ip, false);
             }
             LoggerUtil.logError("NetworkService", "connectToPeer", "Connection timeout to: " + ip, e);
             return false;
@@ -94,6 +111,9 @@ public class NetworkService {
             // Handle other errors
             if (listener != null) {
                 listener.onConnectionEvent(ip, false, "Errore connessione a " + ip + ": " + e.getMessage());
+                // Ensure peer status is set to offline
+                peerStatus.put(ip, false);
+                listener.onPeerStatusChange(ip, false);
             }
             LoggerUtil.logError("NetworkService", "connectToPeer", "Error connecting to: " + ip, e);
             return false;
@@ -150,6 +170,8 @@ public class NetworkService {
                 removePeer(ip);
                 if (listener != null) {
                     listener.onConnectionEvent(ip, false, "Peer disconnesso durante l'invio: " + ip);
+                    //NOtifica gia gestitia
+                    listener.onPeerStatusChange(ip, false);
                 }
                 throw new IOException("Nessuna connessione attiva verso " + ip);
             }
@@ -161,15 +183,27 @@ public class NetworkService {
     private void addOutgoingConnection(String ip, Socket socket) throws IOException {
         outgoing.put(ip, socket);
         outWriters.put(ip, new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+        
+        // Update peer status to online
+        peerStatus.put(ip, true);
+        
+        // Notify listener about online status
+        if (listener != null) {
+            listener.onPeerStatusChange(ip, true);
+        }
     }
 
     private void addIncomingConnection(String ip, Socket socket) throws IOException {
         incoming.put(ip, socket);
         inWriters.put(ip, new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
 
+        // Update peer status to online
+        peerStatus.put(ip, true);
+        
         // Notify listener about new incoming connection
         if (listener != null) {
-            listener.onConnectionEvent(ip, true, "Online " + ip,new Object());
+            listener.onConnectionEvent(ip, true, "Online " + ip, new Object());
+            listener.onPeerStatusChange(ip, true); // Notify about online status
         }
     }
 
@@ -187,6 +221,7 @@ public class NetworkService {
                 removePeer(ip);
                 if (listener != null) {
                     listener.onConnectionEvent(ip, false, "Peer disconnesso: " + ip);
+                    listener.onPeerStatusChange(ip, false); // Notify about offline status
                 }
             }
         }, "Reader-" + ip).start();
@@ -229,11 +264,23 @@ public class NetworkService {
                 /* ignore */ }
         }
         inWriters.remove(ip);
+        
+        // Update peer status to offline
+        peerStatus.put(ip, false);
+        
+        // Notify about offline status if listener exists
+        if (listener != null) {
+            listener.onPeerStatusChange(ip, false);
+        }
     }
 
-    // Check if peer is connected
     public boolean isPeerConnected(String ip) {
         return (outgoing.containsKey(ip) && isConnectionValid(outgoing.get(ip))) ||
                 (incoming.containsKey(ip) && isConnectionValid(incoming.get(ip)));
+    }
+
+    public boolean isPeerOnline(String ip) {
+        Boolean status = peerStatus.get(ip);
+        return status != null && status && isPeerConnected(ip);
     }
 }
