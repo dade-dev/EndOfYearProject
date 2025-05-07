@@ -106,11 +106,10 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
             // Optional: you could add a system message to the chat
             if (!model.getPeers().contains(ip) && connected) {
                 // If this is a new peer that we just connected to, add them
-                model.addMessage(ip, "--- Peer connesso: " + ip + " ---");
                 view.setPeers(getDisplayPeers());
             } else if (model.getPeers().contains(ip)) {
                 // If it's an existing peer, add connection status to their chat
-                model.addMessage(ip, "--- " + message + " ---");
+                //model.addMessage(ip, "--- " + message + " ---");
 
                 // If this chat is currently selected, also update the view
                 String selectedDisplay = view.getSelectedPeer();
@@ -182,7 +181,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                         // onConnectionEvent
                         SwingUtilities.invokeLater(() -> {
                             view.appendText("--- Messaggio non inviato! Peer non raggiungibile. ---");
-                            model.addMessage(targetIp, "--- Messaggio non inviato! Peer non raggiungibile. ---");
+                            //model.addMessage(targetIp, "--- Messaggio non inviato! Peer non raggiungibile. ---");
                         });
                     }
                 } else {
