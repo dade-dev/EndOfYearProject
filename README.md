@@ -39,7 +39,7 @@ LISTEN_PORT=9000 # recommended
 Compile all Java source files with the bin directory as the output path:
 
 ```bash
-javac -d secretMessanger/bin secretMessanger/src/msg/*.java secretMessanger/src/msg/*/*.java
+javac -d secretMessenger/bin secretMessenger/src/msg/*.java secretMessenger/src/msg/*/*.java
 ```
 
 ### Running
@@ -48,7 +48,7 @@ From the project root directory, run the application with:
 
 ```bash
 
-java -cp secretMessanger/bin msg.Main
+java -cp secretMessenger/bin msg.Main
 ```
 
 ## Usage Guide
