@@ -9,7 +9,7 @@ public class NetworkService {
 
     public interface MessageListener {
         void onMessageReceived(String senderIp, String base64Message);
-        void onConnectionEvent(String ip, boolean connected, String message);
+        void onConnectionEvent(String ip, boolean connected, String message,Object ... args);
     }
 
     private final int listenPort;
@@ -65,14 +65,14 @@ public class NetworkService {
 
             // Notify listener about successful connection
             if (listener != null) {
-                listener.onConnectionEvent(ip, true, "Connesso a " + ip);
+                listener.onConnectionEvent(ip, true, "Connesso a " + ip);// if i put another params -> new Object() it will show on view
             }
             return true;
         } catch (UnknownHostException e) {
             // Handle when hostname can't be resolved (e.g., when a name is entered instead
             // of IP)
             if (listener != null) {
-                listener.onConnectionEvent(ip, false, "Host non trovato: " + ip);
+                listener.onConnectionEvent(ip, false, "Host non trovato: " + ip);// We check the ip is valid
             }
             LoggerUtil.logError("NetworkService", "connectToPeer", "Unknown host: " + ip, e);
             return false;
@@ -169,7 +169,7 @@ public class NetworkService {
 
         // Notify listener about new incoming connection
         if (listener != null) {
-            listener.onConnectionEvent(ip, true, "Connessione entrante da " + ip);
+            listener.onConnectionEvent(ip, true, "Online" + ip,new Object());
         }
     }
 

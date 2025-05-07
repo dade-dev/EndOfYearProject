@@ -97,7 +97,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
     }
 
     @Override
-    public void onConnectionEvent(String ip, boolean connected, String message) {
+    public void onConnectionEvent(String ip, boolean connected, String message,Object ... args) {
         // Update status in UI thread
         SwingUtilities.invokeLater(() ->{
             // Set status message in the UI
@@ -115,7 +115,8 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
                 String selectedDisplay = view.getSelectedPeer();
                 String selectedIp = resolveIp(selectedDisplay);
                 if (ip.equals(selectedIp)) {
-                    view.appendText("--- " + message + " ---");
+                    if(args[0].getClass() == (new Object()).getClass())
+                        view.appendText("--- " + message + " ---");
                 }
             }
         });
