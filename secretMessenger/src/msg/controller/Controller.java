@@ -568,7 +568,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
        			while(true){
             		try{
 						Thread.sleep(5000);
-						System.out.println("Sto controllando che sei online, sono gay");
 						String selectedPeer = view.getSelectedPeer();
 			            if (selectedPeer != null) {
 				            isPeerOnline(selectedPeer);
