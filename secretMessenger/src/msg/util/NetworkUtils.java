@@ -5,6 +5,10 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.regex.Pattern;
 
+/**
+ * Utility class for network-related functions, such as retrieving the local IP address
+ * and validating IP address formats.
+ */
 public class NetworkUtils {
     // IP address pattern (IPv4)
     private static final Pattern IPV4_PATTERN = Pattern.compile(
@@ -13,6 +17,12 @@ public class NetworkUtils {
                     "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\." +
                     "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 
+    /**
+     * Retrieves the local IP address of the machine.
+     * It attempts to find a non-loopback, up, and non-virtual interface.
+     * Excludes interfaces containing "ham" (Hamachi) or "ztt" (ZeroTier) in their names.
+     * @return The local IPv4 address as a string, or "127.0.0.1" if an error occurs or no suitable IP is found.
+     */
     public static String getLocalIp() {
         try {
             Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces();
@@ -36,6 +46,11 @@ public class NetworkUtils {
         return "127.0.0.1";
     }
 
+    /**
+     * Validates if the given string is a valid IPv4 address.
+     * @param ip The string to validate.
+     * @return True if the string is a valid IPv4 address, false otherwise.
+     */
     public static boolean isValidIpAddress(String ip) {
         if (ip == null || ip.isEmpty()) {
             return false;

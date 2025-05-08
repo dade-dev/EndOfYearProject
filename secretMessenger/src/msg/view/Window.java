@@ -14,6 +14,10 @@ import javax.swing.text.DefaultCaret;
 import javax.swing.text.StyledDocument;
 import msg.controller.Controller;
 
+/**
+ * Represents the main window of the SecretMessenger application.
+ * This class handles the user interface for chat, peer management, and other functionalities.
+ */
 public class Window extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private final DefaultListModel<String> peersModel = new DefaultListModel<>();
@@ -31,7 +35,11 @@ public class Window extends JFrame {
 	private Controller controller;
 	private boolean isDarkMode = true; // Added state variable //Starts in darkmode ahh my eyes
 	private final JLabel peerStatusLabel = new JLabel("");
-	
+
+	/**
+	 * Constructs the main window.
+	 * @param c The controller for handling user actions.
+	 */
 	public Window(Controller c) {
 		this.controller = c;
 
@@ -190,6 +198,10 @@ public class Window extends JFrame {
 		
 	}
 
+	/**
+	 * Appends a text message to the chat pane.
+	 * @param text The text message to append.
+	 */
 	public void appendText(String text) {
 		SwingUtilities.invokeLater(() -> {
 			StyledDocument doc = chatPane.getStyledDocument();
@@ -200,6 +212,10 @@ public class Window extends JFrame {
 		});
 	}
 
+	/**
+	 * Appends an image to the chat pane.
+	 * @param img The image to append.
+	 */
 	public void appendImage(Image img) {
 		SwingUtilities.invokeLater(() -> {
 			StyledDocument doc = chatPane.getStyledDocument();
@@ -220,6 +236,10 @@ public class Window extends JFrame {
 		});
 	}
 
+	/**
+	 * Updates the status of the selected peer (Online/Offline).
+	 * @param online True if the peer is online, false otherwise.
+	 */
 	public void updatePeerStatus(boolean online) {
 	    if (online) {
 	        peerStatusLabel.setText("Online");
@@ -233,20 +253,35 @@ public class Window extends JFrame {
 	    peerStatusLabel.setVisible(true);
 	}
 
+	/**
+	 * Selects a peer in the peer list.
+	 * @param display The display name of the peer to select.
+	 */
 	public void selectPeer(String display) {
 		peersList.setSelectedValue(display, true);
 		peerStatusLabel.setVisible(false);
 	}
 
+	/**
+	 * Sets the list of peers to be displayed.
+	 * @param peers A list of peer display names.
+	 */
 	public void setPeers(List<String> peers) {
 		peersModel.clear();
 		peers.forEach(peersModel::addElement);
 	}
 
+	/**
+	 * Sets the status message displayed at the bottom of the window.
+	 * @param text The status text to display.
+	 */
 	public void setStatus(String text) {
 		statusLabel.setText(text);
 	}
 
+	/**
+	 * Clears the message input area.
+	 */
 	public void clearInput() {
 		inputArea.setText("");
 	}
@@ -266,14 +301,24 @@ public class Window extends JFrame {
 		repaint();
 	}
 
+	/**
+	 * Clears the chat pane.
+	 */
 	public void clearChat() {
 		chatPane.setText("");
 	}
 
+	/**
+	 * Gets the currently selected peer from the list.
+	 * @return The display name of the selected peer, or null if no peer is selected.
+	 */
 	public String getSelectedPeer() {
 		return peersList.getSelectedValue();
 	}
 
+	/**
+	 * Clears the peer IP input field.
+	 */
 	public void clearPeerInput() {
 		peerIpField.setText("");
 	}

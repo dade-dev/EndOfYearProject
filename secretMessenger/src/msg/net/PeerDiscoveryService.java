@@ -6,8 +6,20 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import msg.util.LoggerUtil;
 import msg.util.NetworkUtils;
 
+/**
+ * The PeerDiscoveryService is responsible for discovering other instances of the
+ * SecretMessenger application on the local network. It does this by periodically
+ * broadcasting a discovery message and listening for similar messages from other peers.
+ */
 public class PeerDiscoveryService {
+    /**
+     * Interface for listeners to be notified when a new peer is discovered.
+     */
     public interface DiscoveryListener {
+        /**
+         * Called when a new peer is discovered on the network.
+         * @param ip The IP address of the discovered peer.
+         */
         void onPeerDiscovered(String ip);
     }
 
@@ -17,10 +29,17 @@ public class PeerDiscoveryService {
     private final DiscoveryListener listener;
     private boolean running = true;
 
+    /**
+     * Constructs a new PeerDiscoveryService.
+     * @param listener The listener to be notified of discovered peers.
+     */
     public PeerDiscoveryService(DiscoveryListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * Starts the peer discovery service, initiating listener and broadcast threads.
+     */
     public void start() {
         // Listener thread
         Thread listenThread = new Thread(this::listen, "PeerDiscovery-Listen");
@@ -33,6 +52,10 @@ public class PeerDiscoveryService {
         broadcastThread.start();
     }
 
+    /**
+     * Gets the set of currently known peer IP addresses that have been discovered.
+     * @return A new HashSet containing the IP addresses of known peers.
+     */
     public Set<String> getKnownPeers() {
         return new HashSet<>(knownPeers);
     }

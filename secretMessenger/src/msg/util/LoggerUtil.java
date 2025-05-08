@@ -11,6 +11,7 @@ import java.util.logging.SimpleFormatter;
 
 /**
  * Utility class to handle logging to a file for the application.
+ * Configures a logger to write messages to a specified log file.
  */
 public class LoggerUtil {
     private static final String LOG_FOLDER = "logs";
@@ -33,20 +34,20 @@ public class LoggerUtil {
             // Don't let the logger use parent handlers
             logger.setUseParentHandlers(false);
 
-            logger.info("Logger initialized at " + getCurrentTime());
+            logger.log(Level.INFO, "Logger initialized at {0}", getCurrentTime());
         } catch (IOException e) {
             System.err.println("Failed to initialize logger: " + e.getMessage());
-            e.printStackTrace(); // Use standard printStackTrace just for logger initialization errors
+            logger.log(Level.SEVERE, "Failed to initialize logger", e);
         }
     }
 
     /**
      * Logs an error message with exception details.
      * 
-     * @param className  The name of the class where the error occurred
-     * @param methodName The name of the method where the error occurred
-     * @param message    Additional context about the error
-     * @param throwable  The exception to log
+     * @param className  The name of the class where the error occurred.
+     * @param methodName The name of the method where the error occurred.
+     * @param message    Additional context about the error.
+     * @param throwable  The exception to log.
      */
     public static void logError(String className, String methodName, String message, Throwable throwable) {
         String logMessage = String.format("[%s] Error in %s.%s: %s - %s: %s",
@@ -59,9 +60,9 @@ public class LoggerUtil {
     /**
      * Logs a warning message.
      * 
-     * @param className  The name of the class where the warning occurred
-     * @param methodName The name of the method where the warning occurred
-     * @param message    The warning message
+     * @param className  The name of the class where the warning occurred.
+     * @param methodName The name of the method where the warning occurred.
+     * @param message    The warning message.
      */
     public static void logWarning(String className, String methodName, String message) {
         String logMessage = String.format("[%s] Warning in %s.%s: %s",
@@ -73,9 +74,9 @@ public class LoggerUtil {
     /**
      * Logs an informational message.
      * 
-     * @param className  The name of the class generating the info
-     * @param methodName The name of the method generating the info
-     * @param message    The info message
+     * @param className  The name of the class generating the info.
+     * @param methodName The name of the method generating the info.
+     * @param message    The info message.
      */
     public static void logInfo(String className, String methodName, String message) {
         String logMessage = String.format("[%s] Info in %s.%s: %s",
@@ -87,7 +88,7 @@ public class LoggerUtil {
     /**
      * Gets the current time formatted for logging.
      * 
-     * @return Formatted current time
+     * @return Formatted current time string (yyyy-MM-dd HH:mm:ss).
      */
     private static String getCurrentTime() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

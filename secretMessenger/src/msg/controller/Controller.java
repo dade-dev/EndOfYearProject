@@ -1,3 +1,6 @@
+/**
+ * Controller for the SecretMessenger application, handling user interactions and coordinating the model and view.
+ */
 package msg.controller;
 
 import java.awt.Image;
@@ -7,7 +10,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import msg.config.Config;
@@ -19,6 +21,12 @@ import msg.util.LoggerUtil;
 import msg.util.NetworkUtils;
 import msg.view.Window;
 
+/**
+ * The Controller class acts as the intermediary between the Model and the View.
+ * It handles user input from the View, updates the Model accordingly,
+ * and refreshes the View based on changes in the Model or network events.
+ * It also manages network services for messaging and peer discovery.
+ */
 @SuppressWarnings("rawtypes")
 public class Controller implements NetworkService.MessageListener, PeerDiscoveryService.DiscoveryListener {
 	private final Model model;
@@ -28,6 +36,11 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	private final String myIp;
 	private ScheduledExecutorService statusChecker;
 
+	/**
+	 * Constructs a new Controller.
+	 * Initializes the model, view, network services, and sets up the initial state of the application.
+	 * @param model The application's data model.
+	 */
 	public Controller(Model model) {
 		this.model = model;
 		this.myIp = NetworkUtils.getLocalIp(); // Get IP before view initialization
@@ -54,6 +67,9 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		initializePeerSelection();
 	}
 
+	/**
+	 * Starts the application by making the main window visible and initiating peer status checking.
+	 */
 	public void start() {
 		view.setVisible(true);
 		startPeerStatusChecker();
@@ -103,6 +119,14 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		return display;
 	}
 
+	/**
+	 * Handles connection events from the NetworkService.
+	 * Updates the view's status label and potentially the chat pane with connection information.
+	 * @param ip The IP address of the peer involved in the event.
+	 * @param connected True if the connection was established, false otherwise.
+	 * @param message A descriptive message about the connection event.
+	 * @param args Optional arguments, currently used to indicate if a message should be appended to the view.
+	 */
 	@Override
 	public void onConnectionEvent(String ip, boolean connected, String message, Object... args) {
 		// Update status in UI thread
@@ -129,6 +153,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		});
 	}
 
+	/**
+	 * Handles the action of sending a message.
+	 * Retrieves the selected peer, encrypts the message, sends it via the NetworkService,
+	 * and updates the model and view.
+	 * @param message The message text or image command to send.
+	 */
 	public void onSendMessage(String message) {
 		new Thread(() -> {
 			final String selectedDisplay = view.getSelectedPeer(); // Get selection from view
@@ -210,6 +240,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		}).start();
 	}
 
+	/**
+	 * Handles the action of adding a new peer.
+	 * Validates the IP address, attempts to connect, and if successful,
+	 * adds the peer to the model and updates the view.
+	 * @param ip The IP address of the peer to add.
+	 */
 	public void onAddPeer(String ip) {
 		new Thread(() -> {
 			if (!NetworkUtils.isValidIpAddress(ip)) {
@@ -260,6 +296,11 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		}).start();
 	}
 
+	/**
+	 * Handles the action of removing a peer.
+	 * Removes the peer from the model, network service, and updates the view.
+	 * @param display The display name (which might include the IP) of the peer to remove.
+	 */
 	public void onRemovePeer(String display) { // Changed 'ip' to 'display' to match how it's called
 
 		final String ipToRemove = resolveIp(display);
@@ -294,6 +335,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		});
 	}
 
+	/**
+	 * Handles the action of selecting a peer from the list.
+	 * Clears the current chat, loads the chat history for the selected peer,
+	 * and updates the peer's online status in the view.
+	 * @param display The display name (which might include the IP) of the selected peer.
+	 */
 	public void onPeerSelected(String display) {
 		new Thread(() -> {
 			final String ip = resolveIp(display);
@@ -366,6 +413,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		}).start();
 	}
 
+	/**
+	 * Handles the action of renaming a chat.
+	 * Updates the chat name in the model and refreshes the peer list in the view.
+	 * @param display The current display name (which might include the IP) of the chat to rename.
+	 * @param newName The new name for the chat.
+	 */
 	public void onRenameChat(String display, String newName) {
 		if (display == null || newName == null || newName.isBlank()) {
 			view.setStatus("Nome non valido.");
@@ -398,6 +451,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		return getDisplayPeers().stream().filter(p -> resolveIp(p).equals(ip)).findFirst().orElse(elses);
 	}
 
+	/**
+	 * Handles incoming messages from the NetworkService.
+	 * Decrypts the message, adds it to the model, and updates the view if the sender's chat is active.
+	 * @param senderIp The IP address of the message sender.
+	 * @param base64Message The Base64 encoded and encrypted message content.
+	 */
 	@Override
 	public void onMessageReceived(String senderIp, String base64Message) {
 		new Thread(() -> {
@@ -451,6 +510,11 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		}).start();
 	}
 
+	/**
+	 * Handles peer discovery events from the PeerDiscoveryService.
+	 * Adds newly discovered peers to the model and updates the view.
+	 * @param ip The IP address of the discovered peer.
+	 */
 	@Override
 	public void onPeerDiscovered(String ip) {
 		new Thread(() -> {
@@ -466,6 +530,12 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		}).start();
 	}
 
+	/**
+	 * Handles changes in peer online status from the NetworkService.
+	 * Updates the view if the affected peer's chat is currently selected.
+	 * @param ip The IP address of the peer whose status changed.
+	 * @param online True if the peer is now online, false otherwise.
+	 */
 	@Override
 	public void onPeerStatusChange(String ip, boolean online) {
 		SwingUtilities.invokeLater(() -> {
@@ -480,7 +550,11 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 		});
 	}
 
-	// Verifica se un peer è online e aggiorna l'interfaccia utente
+	/**
+	 * Checks if a peer is online and updates their status in the view.
+	 * @param displayName The display name (which might include the IP) of the peer to check.
+	 * @return True if the peer is online, false otherwise.
+	 */
 	public boolean isPeerOnline(String displayName) {
 		String ip = resolveIp(displayName);
 		if (ip != null) {
