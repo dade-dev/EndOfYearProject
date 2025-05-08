@@ -34,7 +34,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	private final NetworkService network;
 	private final PeerDiscoveryService discovery;
 	private final String myIp;
-	private ScheduledExecutorService statusChecker;
 
 	/**
 	 * Constructs a new Controller.
@@ -72,7 +71,6 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	 */
 	public void start() {
 		view.setVisible(true);
-		startPeerStatusChecker();
 	}
 
 	private void initializePeerSelection() {
@@ -568,12 +566,16 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	}
 
 	private void startPeerStatusChecker() {
-		statusChecker = Executors.newSingleThreadScheduledExecutor();
-		statusChecker.scheduleAtFixedRate(() -> {
-			String selectedPeer = view.getSelectedPeer();
-			if (selectedPeer != null) {
-				isPeerOnline(selectedPeer);
-			}
-		}, 5, 5, TimeUnit.SECONDS); // Controlla ogni 5 secondi
+		new Thread(() -> {
+       while(true){
+            try{
+                Thread.sleep(5000);
+                String selectedPeer = view.getSelectedPeer();
+			             if (selectedPeer != null) {
+				                isPeerOnline(selectedPeer);
+			             }
+            }catch(InterruptedException e){}
+       }
+		  }).start(); 
 	}
 }
