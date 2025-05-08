@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
-
 import msg.config.Config;
 import msg.model.Message;
 import msg.model.Model;
@@ -502,20 +501,5 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 				isPeerOnline(selectedPeer);
 			}
 		}, 5, 5, TimeUnit.SECONDS); // Controlla ogni 5 secondi
-	}
-
-	public void stop() {
-		// Ferma il controllo dello stato dei peer
-		if (statusChecker != null) {
-			statusChecker.shutdown();
-			try {
-				if (!statusChecker.awaitTermination(2, TimeUnit.SECONDS)) {
-					statusChecker.shutdownNow();
-				}
-			} catch (InterruptedException e) {
-				statusChecker.shutdownNow();
-				Thread.currentThread().interrupt();
-			}
-		}
 	}
 }
