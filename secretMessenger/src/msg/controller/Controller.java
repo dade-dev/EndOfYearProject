@@ -68,6 +68,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	 */
 	public void start() {
 		view.setVisible(true);
+startPeerStatusChecker();
 	}
 
 	private void initializePeerSelection() {
