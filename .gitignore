@@ -3,6 +3,6 @@ bin/
 *.class
 *.jar
 .DS_Store
-config/
+config.properties
 logs/
 .vscode/
