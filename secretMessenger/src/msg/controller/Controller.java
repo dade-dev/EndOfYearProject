@@ -68,7 +68,7 @@ public class Controller implements NetworkService.MessageListener, PeerDiscovery
 	 */
 	public void start() {
 		view.setVisible(true);
-startPeerStatusChecker();
+		startPeerStatusChecker();
 	}
 
 	private void initializePeerSelection() {
@@ -565,15 +565,16 @@ startPeerStatusChecker();
 
 	private void startPeerStatusChecker() {
 		new Thread(() -> {
-       while(true){
-            try{
-                Thread.sleep(5000);
-                String selectedPeer = view.getSelectedPeer();
-			             if (selectedPeer != null) {
-				                isPeerOnline(selectedPeer);
-			             }
-            }catch(InterruptedException e){}
-       }
-		  }).start(); 
+       			while(true){
+            		try{
+						Thread.sleep(5000);
+						System.out.println("Sto controllando che sei online, sono gay");
+						String selectedPeer = view.getSelectedPeer();
+			            if (selectedPeer != null) {
+				            isPeerOnline(selectedPeer);
+			            }
+           			}catch(InterruptedException e){}
+       			}
+		}).start(); 
 	}
 }
